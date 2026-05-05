@@ -24,15 +24,31 @@ public class StorageUnitService : IStorageUnitService
 
     public async Task<IReadOnlyList<StorageUnit>> GetAvailableAsync(Guid? facilityId = null, Guid? unitTypeId = null, decimal? maxPrice = null)
     {
-        var units = await _storageUnits.GetAvailableUnitsAsync(facilityId);
+        var units = await _storageUnits.GetAvailableUnitsAsync();
 
-        if (unitTypeId.HasValue)
-            units = units.Where(unit => unit.UnitTypeId == unitTypeId.Value).ToList();
+        var filteredUnits = new List<StorageUnit>();
 
-        if (maxPrice.HasValue)
-            units = units.Where(unit => unit.MonthlyPrice <= maxPrice.Value).ToList();
+        foreach (var unit in units)
+        {
+            if (facilityId.HasValue && unit.FacilityId != facilityId.Value)
+            {
+                continue;
+            }
 
-        return units;
+            if (unitTypeId.HasValue && unit.UnitTypeId != unitTypeId.Value)
+            {
+                continue;
+            }
+
+            if (maxPrice.HasValue && unit.MonthlyPrice > maxPrice.Value)
+            {
+                continue;
+            }
+
+            filteredUnits.Add(unit);
+        }
+
+        return filteredUnits;
     }
 
     public Task<IReadOnlyList<StorageUnit>> GetByFacilityIdAsync(Guid facilityId)
