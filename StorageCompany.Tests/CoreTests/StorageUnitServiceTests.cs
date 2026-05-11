@@ -7,8 +7,7 @@ using Xunit;
 namespace StorageCompany.Tests.CoreTests;
 
 /// <summary>
-/// White-box tests for StorageUnitService.GetAvailableAsync().
-/// One test per DD-path from the white-box testing diagram (CC = 6).
+/// White-box tests for StorageUnitService.GetAvailableAsync() — CC = 6.
 ///
 /// Seeded Available units:
 ///   UnitCphSmall       CPH,    Small,    349 kr
@@ -40,6 +39,10 @@ public class StorageUnitServiceTests
         }
     }
 
+    // ══════════════════════════════════════════════════════════════════
+    // DD-Path tests (Paths 1–6)
+    // ══════════════════════════════════════════════════════════════════
+
     // Path 1: units is empty, so the loop is never entered.
     [Fact]
     public async Task GetAvailableAsync_WhenNoUnitsAreAvailable_ReturnsEmptyList()
@@ -55,9 +58,9 @@ public class StorageUnitServiceTests
 
     // Path 2: A unit is rejected because the facility filter does not match.
     [Fact]
-    public async Task GetAvailableAsync_WhenFacilityFilterDoesNotMatchAnyAvailableUnit_ReturnsEmptyList()
+    public async Task GetAvailableAsync_WhenFacilityFilterDoesNotMatch_ReturnsEmptyList()
     {
-        // FacilityOdense has no Available units (UnitOdenseMedium is Maintenance)
+        // FacilityOdense has no Available units
         var result = await _sut.GetAvailableAsync(facilityId: MockDatabase.Ids.FacilityOdense);
 
         Assert.Empty(result);
@@ -65,9 +68,9 @@ public class StorageUnitServiceTests
 
     // Path 3: A unit passes the facility check but is rejected because the unit type filter does not match.
     [Fact]
-    public async Task GetAvailableAsync_WhenUnitTypeFilterDoesNotMatchUnitInFacility_ReturnsEmptyList()
+    public async Task GetAvailableAsync_WhenUnitTypeFilterDoesNotMatch_ReturnsEmptyList()
     {
-        // FacilityAarhus has Small + Business — filtering for Large finds nothing
+        // Aarhus has Small + Business — filtering for Large finds nothing
         var result = await _sut.GetAvailableAsync(
             facilityId: MockDatabase.Ids.FacilityAarhus,
             unitTypeId: MockDatabase.Ids.UnitTypeLarge);
@@ -79,7 +82,6 @@ public class StorageUnitServiceTests
     [Fact]
     public async Task GetAvailableAsync_WhenMaxPriceIsLowerThanAllUnitPrices_ReturnsEmptyList()
     {
-        // Cheapest available unit is AarhusSmall at 299 kr — 1 kr is below all
         var result = await _sut.GetAvailableAsync(maxPrice: 1m);
 
         Assert.Empty(result);
@@ -89,7 +91,7 @@ public class StorageUnitServiceTests
     [Fact]
     public async Task GetAvailableAsync_WhenUnitPassesAllFilters_ReturnsThatUnit()
     {
-        // AarhusSmall: Aarhus facility + Small type + 299 kr — passes all three filters
+        // AarhusSmall: Aarhus, Small, 299 kr — passes all three filters
         var result = await _sut.GetAvailableAsync(
             facilityId: MockDatabase.Ids.FacilityAarhus,
             unitTypeId: MockDatabase.Ids.UnitTypeSmall,
@@ -107,5 +109,102 @@ public class StorageUnitServiceTests
         var result = await _sut.GetAvailableAsync();
 
         Assert.Equal(4, result.Count);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // Coverage — filter not selected (HasValue = false → branch skipped)
+    // ══════════════════════════════════════════════════════════════════
+
+    // Unit exists, but facility filter is not selected
+    [Fact]
+    public async Task GetAvailableAsync_WhenFacilityFilterIsNull_DoesNotFilterByFacility()
+    {
+        // No facilityId → facility check is skipped entirely
+        // Filtering only by Small type and price ≤ 500 → returns CphSmall (349) and AarhusSmall (299)
+        var result = await _sut.GetAvailableAsync(
+            facilityId: null,
+            unitTypeId: MockDatabase.Ids.UnitTypeSmall,
+            maxPrice: 500m);
+
+        Assert.Equal(2, result.Count);
+        Assert.Contains(result, u => u.Id == MockDatabase.Ids.UnitCphSmall);
+        Assert.Contains(result, u => u.Id == MockDatabase.Ids.UnitAarhusSmall);
+    }
+
+    // Unit exists, but unit type filter is not selected
+    [Fact]
+    public async Task GetAvailableAsync_WhenUnitTypeFilterIsNull_DoesNotFilterByUnitType()
+    {
+        // No unitTypeId → type check is skipped entirely
+        // Filtering only by Aarhus facility and price ≤ 500 → AarhusSmall (299) passes, AarhusBusiness (1699) is rejected by price
+        var result = await _sut.GetAvailableAsync(
+            facilityId: MockDatabase.Ids.FacilityAarhus,
+            unitTypeId: null,
+            maxPrice: 500m);
+
+        Assert.Single(result);
+        Assert.Equal(MockDatabase.Ids.UnitAarhusSmall, result[0].Id);
+    }
+
+    // Unit exists, but max price filter is not selected
+    [Fact]
+    public async Task GetAvailableAsync_WhenMaxPriceFilterIsNull_DoesNotFilterByPrice()
+    {
+        // No maxPrice → price check is skipped entirely
+        // Filtering only by Aarhus facility and Small type → AarhusSmall regardless of price
+        var result = await _sut.GetAvailableAsync(
+            facilityId: MockDatabase.Ids.FacilityAarhus,
+            unitTypeId: MockDatabase.Ids.UnitTypeSmall,
+            maxPrice: null);
+
+        Assert.Single(result);
+        Assert.Equal(MockDatabase.Ids.UnitAarhusSmall, result[0].Id);
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    // Boundary value — maxPrice boundary (operator is strict >)
+    // MonthlyPrice > maxPrice.Value → rejected; MonthlyPrice == maxPrice → accepted
+    // Using AarhusSmall with MonthlyPrice = 299 kr
+    // ══════════════════════════════════════════════════════════════════
+
+    // Unit price is lower than max price → unit is returned
+    [Fact]
+    public async Task GetAvailableAsync_WhenUnitPriceIsLowerThanMaxPrice_ReturnsUnit()
+    {
+        // 299 < 300
+        var result = await _sut.GetAvailableAsync(
+            facilityId: MockDatabase.Ids.FacilityAarhus,
+            unitTypeId: MockDatabase.Ids.UnitTypeSmall,
+            maxPrice: 300m);
+
+        Assert.Single(result);
+        Assert.Equal(MockDatabase.Ids.UnitAarhusSmall, result[0].Id);
+    }
+
+    // Unit price is equal to max price → unit is returned (boundary: > is strict, so equal passes)
+    [Fact]
+    public async Task GetAvailableAsync_WhenUnitPriceEqualsMaxPrice_ReturnsUnit()
+    {
+        // 299 == 299 → 299 > 299 is false → unit is NOT skipped
+        var result = await _sut.GetAvailableAsync(
+            facilityId: MockDatabase.Ids.FacilityAarhus,
+            unitTypeId: MockDatabase.Ids.UnitTypeSmall,
+            maxPrice: 299m);
+
+        Assert.Single(result);
+        Assert.Equal(MockDatabase.Ids.UnitAarhusSmall, result[0].Id);
+    }
+
+    // Unit price is higher than max price → unit is not returned
+    [Fact]
+    public async Task GetAvailableAsync_WhenUnitPriceIsHigherThanMaxPrice_DoesNotReturnUnit()
+    {
+        // 299 > 298 → unit is skipped
+        var result = await _sut.GetAvailableAsync(
+            facilityId: MockDatabase.Ids.FacilityAarhus,
+            unitTypeId: MockDatabase.Ids.UnitTypeSmall,
+            maxPrice: 298m);
+
+        Assert.Empty(result);
     }
 }
