@@ -21,7 +21,7 @@ public class StorageUnitService : IStorageUnitService
         var unit = await _storageUnits.GetByIdAsync(id);
         return unit ?? throw new NotFoundException($"Storage unit '{id}' was not found.");
     }
-
+    // Lavet i white-box GetAvailableAsync
     public async Task<IReadOnlyList<StorageUnit>> GetAvailableAsync(Guid? facilityId = null, Guid? unitTypeId = null, decimal? maxPrice = null)
     {
         var units = await _storageUnits.GetAvailableUnitsAsync();
