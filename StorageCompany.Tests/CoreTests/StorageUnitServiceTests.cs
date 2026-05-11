@@ -1,231 +1,111 @@
-﻿using Moq;
-using StorageCompany.Core.Entities;
-using StorageCompany.Core.Enums;
-using StorageCompany.Core.Interfaces.Repositories;
+﻿using StorageCompany.Core.Enums;
 using StorageCompany.Core.Services;
+using StorageCompany.Infrastructure.Data;
+using StorageCompany.Infrastructure.Repositories;
 using Xunit;
 
 namespace StorageCompany.Tests.CoreTests;
 
 /// <summary>
-/// White-box derived unit tests for StorageUnitService.GetAvailableAsync.
-/// 
-/// Method under test:
-/// GetAvailableAsync(Guid? facilityId = null, Guid? unitTypeId = null, decimal? maxPrice = null)
+/// White-box tests for StorageUnitService.GetAvailableAsync().
+/// One test per DD-path from the white-box testing diagram (CC = 6).
 ///
-/// Purpose:
-/// These tests cover the independent logical paths from the white-box graph:
-/// 1. No filters.
-/// 2. Facility filter rejects unit.
-/// 3. Facility filter accepts unit.
-/// 4. Unit type filter rejects unit.
-/// 5. Unit type filter accepts unit.
-/// 6. Max price filter rejects unit.
-/// 7. Max price filter accepts unit.
-///
-/// The tests use Moq to isolate the service from the repository.
+/// Seeded Available units:
+///   UnitCphSmall       CPH,    Small,    349 kr
+///   UnitCphLarge       CPH,    Large,   1199 kr
+///   UnitAarhusSmall    Aarhus, Small,    299 kr
+///   UnitAarhusBusiness Aarhus, Business 1699 kr
 /// </summary>
-
-public class StorageUnitServiceWhiteBoxTests
+[Collection("MockDatabase")]
+public class StorageUnitServiceTests
 {
-    private readonly Mock<IStorageUnitRepository> _storageUnitRepositoryMock;
-    private readonly StorageUnitService _service;
+    private readonly StorageUnitService _sut;
 
-    public StorageUnitServiceWhiteBoxTests()
+    public StorageUnitServiceTests()
     {
-        _storageUnitRepositoryMock = new Mock<IStorageUnitRepository>();
-        _service = new StorageUnitService(_storageUnitRepositoryMock.Object);
+        _sut = new StorageUnitService(new StorageUnitRepository());
+        ResetUnits();
     }
 
-    [Fact]
-    public async Task GetAvailableAsync_NoFilters_ReturnsAllAvailableUnits()
+    private static void ResetUnits()
     {
-        // Arrange
-        var units = new List<StorageUnit>
+        lock (MockDatabase.SyncRoot)
         {
-            CreateStorageUnit(monthlyPrice: 1000m),
-            CreateStorageUnit(monthlyPrice: 1500m)
-        };
-
-        _storageUnitRepositoryMock
-            .Setup(repository => repository.GetAvailableUnitsAsync(null))
-            .ReturnsAsync(units);
-
-        // Act
-        var result = await _service.GetAvailableAsync();
-
-        // Assert
-        Assert.Equal(2, result.Count);
-
-        _storageUnitRepositoryMock.Verify(
-            repository => repository.GetAvailableUnitsAsync(null),
-            Times.Once);
+            MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitCphSmall).Status       = StorageUnitStatus.Available;
+            MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitCphMedium).Status      = StorageUnitStatus.Rented;
+            MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitCphLarge).Status       = StorageUnitStatus.Available;
+            MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitAarhusSmall).Status    = StorageUnitStatus.Available;
+            MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitAarhusBusiness).Status = StorageUnitStatus.Available;
+            MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitOdenseMedium).Status   = StorageUnitStatus.Maintenance;
+        }
     }
 
+    // Path 1: units is empty, so the loop is never entered.
     [Fact]
-    public async Task GetAvailableAsync_FacilityIdDoesNotMatch_ReturnsEmptyList()
+    public async Task GetAvailableAsync_WhenNoUnitsAreAvailable_ReturnsEmptyList()
     {
-        // Arrange
-        var requestedFacilityId = Guid.NewGuid();
-        var differentFacilityId = Guid.NewGuid();
+        lock (MockDatabase.SyncRoot)
+            foreach (var u in MockDatabase.StorageUnits)
+                u.Status = StorageUnitStatus.Rented;
 
-        var units = new List<StorageUnit>
-        {
-            CreateStorageUnit(facilityId: differentFacilityId)
-        };
+        var result = await _sut.GetAvailableAsync();
 
-        _storageUnitRepositoryMock
-            .Setup(repository => repository.GetAvailableUnitsAsync(null))
-            .ReturnsAsync(units);
-
-        // Act
-        var result = await _service.GetAvailableAsync(facilityId: requestedFacilityId);
-
-        // Assert
         Assert.Empty(result);
     }
 
+    // Path 2: A unit is rejected because the facility filter does not match.
     [Fact]
-    public async Task GetAvailableAsync_FacilityIdMatches_ReturnsMatchingUnit()
+    public async Task GetAvailableAsync_WhenFacilityFilterDoesNotMatchAnyAvailableUnit_ReturnsEmptyList()
     {
-        // Arrange
-        var requestedFacilityId = Guid.NewGuid();
+        // FacilityOdense has no Available units (UnitOdenseMedium is Maintenance)
+        var result = await _sut.GetAvailableAsync(facilityId: MockDatabase.Ids.FacilityOdense);
 
-        var matchingUnit = CreateStorageUnit(facilityId: requestedFacilityId);
-        var nonMatchingUnit = CreateStorageUnit(facilityId: Guid.NewGuid());
-
-        var units = new List<StorageUnit>
-        {
-            matchingUnit,
-            nonMatchingUnit
-        };
-
-        _storageUnitRepositoryMock
-            .Setup(repository => repository.GetAvailableUnitsAsync(null))
-            .ReturnsAsync(units);
-
-        // Act
-        var result = await _service.GetAvailableAsync(facilityId: requestedFacilityId);
-
-        // Assert
-        var returnedUnit = Assert.Single(result);
-        Assert.Equal(matchingUnit.Id, returnedUnit.Id);
-    }
-
-    [Fact]
-    public async Task GetAvailableAsync_UnitTypeIdDoesNotMatch_ReturnsEmptyList()
-    {
-        // Arrange
-        var requestedUnitTypeId = Guid.NewGuid();
-        var differentUnitTypeId = Guid.NewGuid();
-
-        var units = new List<StorageUnit>
-        {
-            CreateStorageUnit(unitTypeId: differentUnitTypeId)
-        };
-
-        _storageUnitRepositoryMock
-            .Setup(repository => repository.GetAvailableUnitsAsync(null))
-            .ReturnsAsync(units);
-
-        // Act
-        var result = await _service.GetAvailableAsync(unitTypeId: requestedUnitTypeId);
-
-        // Assert
         Assert.Empty(result);
     }
 
+    // Path 3: A unit passes the facility check but is rejected because the unit type filter does not match.
     [Fact]
-    public async Task GetAvailableAsync_UnitTypeIdMatches_ReturnsMatchingUnit()
+    public async Task GetAvailableAsync_WhenUnitTypeFilterDoesNotMatchUnitInFacility_ReturnsEmptyList()
     {
-        // Arrange
-        var requestedUnitTypeId = Guid.NewGuid();
+        // FacilityAarhus has Small + Business — filtering for Large finds nothing
+        var result = await _sut.GetAvailableAsync(
+            facilityId: MockDatabase.Ids.FacilityAarhus,
+            unitTypeId: MockDatabase.Ids.UnitTypeLarge);
 
-        var matchingUnit = CreateStorageUnit(unitTypeId: requestedUnitTypeId);
-        var nonMatchingUnit = CreateStorageUnit(unitTypeId: Guid.NewGuid());
-
-        var units = new List<StorageUnit>
-        {
-            matchingUnit,
-            nonMatchingUnit
-        };
-
-        _storageUnitRepositoryMock
-            .Setup(repository => repository.GetAvailableUnitsAsync(null))
-            .ReturnsAsync(units);
-
-        // Act
-        var result = await _service.GetAvailableAsync(unitTypeId: requestedUnitTypeId);
-
-        // Assert
-        var returnedUnit = Assert.Single(result);
-        Assert.Equal(matchingUnit.Id, returnedUnit.Id);
-    }
-
-    [Fact]
-    public async Task GetAvailableAsync_MonthlyPriceIsGreaterThanMaxPrice_ReturnsEmptyList()
-    {
-        // Arrange
-        var units = new List<StorageUnit>
-        {
-            CreateStorageUnit(monthlyPrice: 1500m)
-        };
-
-        _storageUnitRepositoryMock
-            .Setup(repository => repository.GetAvailableUnitsAsync(null))
-            .ReturnsAsync(units);
-
-        // Act
-        var result = await _service.GetAvailableAsync(maxPrice: 1000m);
-
-        // Assert
         Assert.Empty(result);
     }
 
-    [Theory]
-    [InlineData(1000, 1000)]
-    [InlineData(999, 1000)]
-    public async Task GetAvailableAsync_MonthlyPriceIsLessThanOrEqualToMaxPrice_ReturnsMatchingUnit(
-        decimal unitPrice,
-        decimal maxPrice)
+    // Path 4: A unit passes facility and unit type checks but is rejected because the price is too high.
+    [Fact]
+    public async Task GetAvailableAsync_WhenMaxPriceIsLowerThanAllUnitPrices_ReturnsEmptyList()
     {
-        // Arrange
-        var unit = CreateStorageUnit(monthlyPrice: unitPrice);
+        // Cheapest available unit is AarhusSmall at 299 kr — 1 kr is below all
+        var result = await _sut.GetAvailableAsync(maxPrice: 1m);
 
-        var units = new List<StorageUnit>
-        {
-            unit
-        };
-
-        _storageUnitRepositoryMock
-            .Setup(repository => repository.GetAvailableUnitsAsync(null))
-            .ReturnsAsync(units);
-
-        // Act
-        var result = await _service.GetAvailableAsync(maxPrice: maxPrice);
-
-        // Assert
-        var returnedUnit = Assert.Single(result);
-        Assert.Equal(unit.Id, returnedUnit.Id);
+        Assert.Empty(result);
     }
 
-    private static StorageUnit CreateStorageUnit(
-        Guid? facilityId = null,
-        Guid? unitTypeId = null,
-        decimal monthlyPrice = 1000m)
+    // Path 5: A unit passes all active filters and is added to the result list.
+    [Fact]
+    public async Task GetAvailableAsync_WhenUnitPassesAllFilters_ReturnsThatUnit()
     {
-        return new StorageUnit
-        {
-            Id = Guid.NewGuid(),
-            FacilityId = facilityId ?? Guid.NewGuid(),
-            UnitTypeId = unitTypeId ?? Guid.NewGuid(),
-            UnitNumber = "A-101",
-            Floor = 1,
-            MonthlyPrice = monthlyPrice,
-            Status = StorageUnitStatus.Available,
-            IsClimateControlled = false,
-            IsDriveUp = false,
-            CreatedAtUtc = DateTime.UtcNow
-        };
+        // AarhusSmall: Aarhus facility + Small type + 299 kr — passes all three filters
+        var result = await _sut.GetAvailableAsync(
+            facilityId: MockDatabase.Ids.FacilityAarhus,
+            unitTypeId: MockDatabase.Ids.UnitTypeSmall,
+            maxPrice: 500m);
+
+        Assert.Single(result);
+        Assert.Equal(MockDatabase.Ids.UnitAarhusSmall, result[0].Id);
+    }
+
+    // Path 6: More than one unit exists, so the loop repeats and processes another unit.
+    [Fact]
+    public async Task GetAvailableAsync_WhenMultipleUnitsAreAvailable_ReturnsAllOfThem()
+    {
+        // No filters — all 4 seeded Available units are returned
+        var result = await _sut.GetAvailableAsync();
+
+        Assert.Equal(4, result.Count);
     }
 }
