@@ -2,18 +2,20 @@
 
 This document describes the database tables represented by the showcase API entities.
 
-## Customers
+## Users
 
-Stores customer account information.
+Stores user account information.
 
 | Column | Type | Notes |
 |---|---|---|
-| CustomerId | guid | Primary key |
-| FirstName | string | Customer first name |
-| LastName | string | Customer last name |
+| UserId | guid | Primary key |
+| FirstName | string | User first name |
+| LastName | string | User last name |
 | Email | string | Unique login/contact email |
-| PhoneNumber | string | Customer phone |
+| PhoneNumber | string | User phone |
 | PasswordHash | string | Stored password hash |
+| PasswordSalt | string | Password salt for hashing |
+| Role | string | User role (e.g., Customer, Admin) |
 | CreatedAtUtc | datetime | Created timestamp |
 | IsActive | boolean | Account status |
 
@@ -47,7 +49,7 @@ Stores size and category information.
 | Name | string | Small, Medium, Large, Business |
 | SizeInSquareMeters | decimal | Unit size |
 | Description | string | Human-readable explanation |
-| RecommendedFor | string | Example customer use case |
+| RecommendedFor | string | Example user use case |
 
 ## StorageUnits
 
@@ -67,12 +69,12 @@ Stores individual physical storage units.
 
 ## Reservations
 
-Stores temporary customer reservations.
+Stores temporary user reservations.
 
 | Column | Type | Notes |
 |---|---|---|
 | ReservationId | guid | Primary key |
-| CustomerId | guid | Foreign key to Customers |
+| UserId | guid | Foreign key to Users |
 | StorageUnitId | guid | Foreign key to StorageUnits |
 | ReservationDateUtc | datetime | Reservation date |
 | MoveInDateUtc | datetime | Desired move-in date |
@@ -86,7 +88,7 @@ Stores active and historical rental agreements.
 | Column | Type | Notes |
 |---|---|---|
 | RentalId | guid | Primary key |
-| CustomerId | guid | Foreign key to Customers |
+| UserId | guid | Foreign key to Users |
 | StorageUnitId | guid | Foreign key to StorageUnits |
 | StartDateUtc | datetime | Rental start date |
 | EndDateUtc | datetime nullable | Rental end date |
@@ -101,7 +103,7 @@ Stores payment records.
 |---|---|---|
 | PaymentId | guid | Primary key |
 | RentalId | guid | Foreign key to Rentals |
-| CustomerId | guid | Foreign key to Customers |
+| UserId | guid | Foreign key to Users |
 | InvoiceId | guid nullable | Optional link to invoice |
 | Amount | decimal | Payment amount |
 | PaymentDateUtc | datetime | Payment date |
@@ -117,7 +119,7 @@ Stores billing records.
 |---|---|---|
 | InvoiceId | guid | Primary key |
 | RentalId | guid | Foreign key to Rentals |
-| CustomerId | guid | Foreign key to Customers |
+| UserId | guid | Foreign key to Users |
 | InvoiceNumber | string | Human-readable invoice number |
 | Amount | decimal | Invoice amount |
 | DueDateUtc | datetime | Due date |
@@ -138,22 +140,22 @@ Stores access code information for active rentals.
 
 ## SupportRequests
 
-Stores customer support messages.
+Stores user support messages.
 
 | Column | Type | Notes |
 |---|---|---|
 | SupportRequestId | guid | Primary key |
-| CustomerId | guid | Foreign key to Customers |
+| UserId | guid | Foreign key to Users |
 | RentalId | guid nullable | Optional foreign key to Rentals |
 | Subject | string | Request subject |
-| Message | string | Customer message |
+| Message | string | User message |
 | Status | enum | Open, InProgress, Resolved, Closed |
 | CreatedAtUtc | datetime | Created timestamp |
 
 ## Relationship overview
 
 ```text
-Customers
+Users
    ├── Reservations
    ├── Rentals
    │      ├── Payments
@@ -168,4 +170,3 @@ Facilities
 StorageUnits
    ├── Reservations
    └── Rentals
-```

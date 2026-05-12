@@ -1,6 +1,6 @@
 namespace StorageCompany.Api.Responses;
 
-public record CustomerResponse(
+public record UserResponse(
     Guid Id,
     string FirstName,
     string LastName,

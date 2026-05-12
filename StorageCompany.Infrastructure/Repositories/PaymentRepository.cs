@@ -15,7 +15,7 @@ public class PaymentRepository : InMemoryRepository<Payment>, IPaymentRepository
         lock (MockDatabase.SyncRoot)
         {
             var result = MockDatabase.Payments
-                .Where(payment => payment.CustomerId == customerId)
+                .Where(payment => payment.UserId == customerId)
                 .OrderByDescending(payment => payment.PaymentDateUtc)
                 .ToList();
 

@@ -5,7 +5,7 @@ namespace StorageCompany.Core.Entities;
 public class Payment : EntityBase
 {
     public Guid RentalId { get; set; }
-    public Guid CustomerId { get; set; }
+    public Guid UserId { get; set; }
     public Guid? InvoiceId { get; set; }
     public decimal Amount { get; set; }
     public DateTime PaymentDateUtc { get; set; } = DateTime.UtcNow;

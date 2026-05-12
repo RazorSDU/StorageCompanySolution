@@ -6,35 +6,35 @@ using StorageCompany.Core.Validators;
 
 namespace StorageCompany.Core.Services;
 
-public class CustomerService : ICustomerService
+public class UserService : IUserService
 {
-    private readonly ICustomerRepository _customers;
+    private readonly IUserRepository _users;
 
-    public CustomerService(ICustomerRepository customers)
+    public UserService(IUserRepository users)
     {
-        _customers = customers;
+        _users = users;
     }
 
-    public Task<IReadOnlyList<Customer>> GetAllAsync() => _customers.GetAllAsync();
+    public Task<IReadOnlyList<User>> GetAllAsync() => _users.GetAllAsync();
 
-    public async Task<Customer> GetByIdAsync(Guid id)
+    public async Task<User> GetByIdAsync(Guid id)
     {
-        var customer = await _customers.GetByIdAsync(id);
-        return customer ?? throw new NotFoundException($"Customer '{id}' was not found.");
+        var customer = await _users.GetByIdAsync(id);
+        return customer ?? throw new NotFoundException($"User '{id}' was not found.");
     }
 
-    public async Task<Customer> CreateAsync(string firstName, string lastName, string email, string phoneNumber, string password)
+    public async Task<User> CreateAsync(string firstName, string lastName, string email, string phoneNumber, string password)
     {
         Guard.AgainstBlank(firstName, nameof(firstName));
         Guard.AgainstBlank(lastName, nameof(lastName));
         Guard.AgainstBlank(email, nameof(email));
         Guard.AgainstBlank(password, nameof(password));
 
-        var existing = await _customers.GetByEmailAsync(email);
+        var existing = await _users.GetByEmailAsync(email);
         if (existing is not null)
             throw new BusinessRuleException("A customer with this email already exists.");
 
-        var customer = new Customer
+        var customer = new User
         {
             Id = Guid.NewGuid(),
             FirstName = firstName.Trim(),
@@ -46,11 +46,11 @@ public class CustomerService : ICustomerService
             CreatedAtUtc = DateTime.UtcNow
         };
 
-        await _customers.AddAsync(customer);
+        await _users.AddAsync(customer);
         return customer;
     }
 
-    public async Task<Customer> UpdateAsync(Guid id, string firstName, string lastName, string phoneNumber, bool isActive)
+    public async Task<User> UpdateAsync(Guid id, string firstName, string lastName, string phoneNumber, bool isActive)
     {
         var customer = await GetByIdAsync(id);
 
@@ -62,7 +62,7 @@ public class CustomerService : ICustomerService
         customer.PhoneNumber = phoneNumber.Trim();
         customer.IsActive = isActive;
 
-        await _customers.UpdateAsync(customer);
+        await _users.UpdateAsync(customer);
         return customer;
     }
 }

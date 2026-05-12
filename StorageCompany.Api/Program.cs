@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using NSwag;
 using NSwag.Generation.Processors.Security;
 using StorageCompany.Api.Middleware;
+using StorageCompany.Core;
 using StorageCompany.Core.Interfaces.Repositories;
 using StorageCompany.Core.Interfaces.Services;
 using StorageCompany.Core.Services;
@@ -15,6 +16,8 @@ public class Program
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+        
+        builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("AppSettings"));
 
         builder.Services
             .AddControllers()
@@ -52,7 +55,7 @@ public class Program
         });
 
         // Repositories: infrastructure implementations behind Core interfaces.
-        builder.Services.AddSingleton<ICustomerRepository, CustomerRepository>();
+        builder.Services.AddSingleton<IUserRepository, UserRepository>();
         builder.Services.AddSingleton<IFacilityRepository, FacilityRepository>();
         builder.Services.AddSingleton<IStorageUnitTypeRepository, StorageUnitTypeRepository>();
         builder.Services.AddSingleton<IStorageUnitRepository, StorageUnitRepository>();
@@ -64,7 +67,7 @@ public class Program
         builder.Services.AddSingleton<ISupportRequestRepository, SupportRequestRepository>();
 
         // Core business services.
-        builder.Services.AddScoped<ICustomerService, CustomerService>();
+        builder.Services.AddScoped<IUserService, UserService>();
         builder.Services.AddScoped<IFacilityService, FacilityService>();
         builder.Services.AddScoped<IStorageUnitTypeService, StorageUnitTypeService>();
         builder.Services.AddScoped<IStorageUnitService, StorageUnitService>();

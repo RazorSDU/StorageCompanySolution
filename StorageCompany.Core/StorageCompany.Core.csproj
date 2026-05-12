@@ -7,4 +7,8 @@
     <RootNamespace>StorageCompany.Core</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="JWT" Version="11.0.0" />
+  </ItemGroup>
+
 </Project>

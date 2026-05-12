@@ -9,20 +9,20 @@ namespace StorageCompany.Core.Services;
 
 public class RentalService : IRentalService
 {
-    private readonly ICustomerRepository _customers;
+    private readonly IUserRepository _users;
     private readonly IReservationRepository _reservations;
     private readonly IRentalRepository _rentals;
     private readonly IStorageUnitRepository _storageUnits;
     private readonly IAccessCodeService _accessCodeService;
 
     public RentalService(
-        ICustomerRepository customers,
+        IUserRepository users,
         IReservationRepository reservations,
         IRentalRepository rentals,
         IStorageUnitRepository storageUnits,
         IAccessCodeService accessCodeService)
     {
-        _customers = customers;
+        _users = users;
         _reservations = reservations;
         _rentals = rentals;
         _storageUnits = storageUnits;
@@ -50,7 +50,7 @@ public class RentalService : IRentalService
         var rental = new Rental
         {
             Id = Guid.NewGuid(),
-            CustomerId = reservation.CustomerId,
+            UserId = reservation.CustomerId,
             StorageUnitId = unit.Id,
             StartDateUtc = reservation.MoveInDateUtc,
             MonthlyPrice = unit.MonthlyPrice,
@@ -74,11 +74,11 @@ public class RentalService : IRentalService
         Guard.AgainstEmpty(customerId, nameof(customerId));
         Guard.AgainstEmpty(storageUnitId, nameof(storageUnitId));
 
-        var customer = await _customers.GetByIdAsync(customerId)
-            ?? throw new NotFoundException($"Customer '{customerId}' was not found.");
+        var customer = await _users.GetByIdAsync(customerId)
+            ?? throw new NotFoundException($"User '{customerId}' was not found.");
 
         if (!customer.IsActive)
-            throw new BusinessRuleException("Inactive customers cannot create rentals.");
+            throw new BusinessRuleException("Inactive users cannot create rentals.");
 
         var unit = await _storageUnits.GetByIdAsync(storageUnitId)
             ?? throw new NotFoundException($"Storage unit '{storageUnitId}' was not found.");
@@ -92,7 +92,7 @@ public class RentalService : IRentalService
         var rental = new Rental
         {
             Id = Guid.NewGuid(),
-            CustomerId = customerId,
+            UserId = customerId,
             StorageUnitId = storageUnitId,
             StartDateUtc = DateTime.SpecifyKind(startDateUtc, DateTimeKind.Utc),
             MonthlyPrice = unit.MonthlyPrice,
