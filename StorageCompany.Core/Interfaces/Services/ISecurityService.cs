@@ -12,9 +12,9 @@ public interface ISecurityService
         
         public string GenerateJwt(JwtClaims claims);
        
-        public AuthResponse Login(AuthLoginRequest dto);
+        Task<AuthResponse> Login(AuthLoginRequest dto);
         
-        public AuthResponse Register(AuthRegisterRequest dto);
+        Task<AuthResponse> Register(AuthRegisterRequest dto);
         
         public JwtClaims VerifyJwtOrThrow(string jwt);
 }

@@ -17,4 +17,13 @@ public class UserRepository : InMemoryRepository<User>, IUserRepository
             return Task.FromResult(MockDatabase.Users.FirstOrDefault(x => x.Email.Equals(email.Trim(), StringComparison.OrdinalIgnoreCase)));
         }
     }
+
+    public Task<User?> AddUser(User user)
+    {
+        lock (MockDatabase.SyncRoot)
+        {
+            MockDatabase.Users.Add(user);
+            return Task.FromResult<User?>(user);
+        }
+    }
 }
