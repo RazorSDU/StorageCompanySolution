@@ -77,6 +77,7 @@ public class Program
         builder.Services.AddScoped<IInvoiceService, InvoiceService>();
         builder.Services.AddScoped<IAccessCodeService, AccessCodeService>();
         builder.Services.AddScoped<ISupportRequestService, SupportRequestService>();
+        builder.Services.AddScoped<ISecurityService, SecurityService>();
 
         var app = builder.Build();
 
