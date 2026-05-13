@@ -1,3 +1,4 @@
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.0.00000.0
@@ -9,6 +10,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StorageCompany.Infrastructure", "StorageCompany.Infrastructure\StorageCompany.Infrastructure.csproj", "{09B80861-6552-4F53-A5C1-06B05CD0BC48}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StorageCompany.Tests", "StorageCompany.Tests\StorageCompany.Tests.csproj", "{44F37AF9-F6AB-4E11-926B-A9DF7E36D6EC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StorageCompany.Specs", "StorageCompany.Specs\StorageCompany.Specs.csproj", "{564D045C-2BCA-4A75-9607-0F3820333450}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,6 +35,10 @@ Global
 		{44F37AF9-F6AB-4E11-926B-A9DF7E36D6EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{44F37AF9-F6AB-4E11-926B-A9DF7E36D6EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{44F37AF9-F6AB-4E11-926B-A9DF7E36D6EC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{564D045C-2BCA-4A75-9607-0F3820333450}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{564D045C-2BCA-4A75-9607-0F3820333450}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{564D045C-2BCA-4A75-9607-0F3820333450}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{564D045C-2BCA-4A75-9607-0F3820333450}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
