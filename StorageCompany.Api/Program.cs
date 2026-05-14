@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using NSwag;
 using NSwag.Generation.Processors.Security;
+using Scalar.AspNetCore;
 using StorageCompany.Api.Middleware;
 using StorageCompany.Core;
 using StorageCompany.Core.Interfaces.Repositories;
@@ -17,7 +18,12 @@ public class Program
     {
         var builder = WebApplication.CreateBuilder(args);
         
-        builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("AppSettings"));
+        builder.Services
+            .AddOptions<AppOptions>()
+            .Bind(builder.Configuration.GetSection("AppOptions"))
+            .ValidateDataAnnotations()
+            .Validate(options => !string.IsNullOrWhiteSpace(options.JwtSecret), "JwtSecret is required")
+            .ValidateOnStart();
 
         builder.Services
             .AddControllers()
@@ -28,21 +34,7 @@ public class Program
 
         builder.Services.AddEndpointsApiExplorer();
 
-        builder.Services.AddOpenApiDocument(cfg =>
-        {
-            cfg.Title = "Storage Company API";
-
-            cfg.AddSecurity("JWT", Enumerable.Empty<string>(), new OpenApiSecurityScheme
-            {
-                Type = OpenApiSecuritySchemeType.ApiKey,
-                Scheme = "Bearer ",
-                Name = "Authorization",
-                In = OpenApiSecurityApiKeyLocation.Header,
-                Description = "Type into the textbox: Bearer {your JWT token}."
-            });
-
-            cfg.OperationProcessors.Add(new AspNetCoreOperationSecurityScopeProcessor("JWT"));
-        });
+        builder.Services.AddOpenApiDocument();
 
         builder.Services.AddCors(options =>
         {
@@ -87,11 +79,13 @@ public class Program
         app.UseCors("DevelopmentCors");
         app.MapControllers();
 
-        if (app.Environment.IsDevelopment())
+       
+        app.UseOpenApi(conf =>
         {
-            app.UseOpenApi();
-            app.UseSwaggerUi();
-        }
+            conf.Path = "openapi/v1.json";
+        });
+        app.MapScalarApiReference();
+        
 
         app.Run();
     }

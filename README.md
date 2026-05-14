@@ -7,7 +7,7 @@ The project demonstrates:
 - A customer-to-business storage rental flow
 - A SOLID-friendly separation between API, Core, and Infrastructure
 - Mock in-memory data instead of a real database
-- Swagger UI for testing all endpoints
+- Scalar UI for testing all endpoints
 - Entities for customers, facilities, storage units, reservations, rentals, payments, invoices, access codes, and support requests
 
 ## Target framework
@@ -57,10 +57,10 @@ StorageCompanySolution
 3. Restore NuGet packages.
 4. Set `StorageCompany.Api` as the startup project.
 5. Run the API.
-6. Swagger should open automatically at:
+6. Scalar should open automatically at:
 
 ```text
-https://localhost:7042/swagger
+https://localhost:7042/scalar
 ```
 
 You can also run it from the terminal:
@@ -72,7 +72,7 @@ dotnet run --project StorageCompany.Api
 
 ## Useful seeded demo IDs
 
-These IDs are useful when testing POST requests in Swagger.
+These IDs are useful when testing POST requests in Scalar.
 
 ### Customers
 
@@ -105,7 +105,7 @@ Rental = 50000000-0000-0000-0000-000000000001
 Access code = 123456
 ```
 
-## Example Swagger test flow
+## Example Scalar test flow
 
 ### 1. View available units
 

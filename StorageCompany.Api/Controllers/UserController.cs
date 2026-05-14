@@ -16,6 +16,7 @@ public class UserController : ControllerBase
     private readonly IPaymentService _payments;
     private readonly IInvoiceService _invoices;
     private readonly ISupportRequestService _supportRequests;
+    private readonly ISecurityService _security;
 
     public UserController(
         IUserService users,
@@ -23,7 +24,8 @@ public class UserController : ControllerBase
         IReservationService reservations,
         IPaymentService payments,
         IInvoiceService invoices,
-        ISupportRequestService supportRequests)
+        ISupportRequestService supportRequests,
+        ISecurityService securityService)
     {
         _users = users;
         _rentals = rentals;
@@ -31,13 +33,17 @@ public class UserController : ControllerBase
         _payments = payments;
         _invoices = invoices;
         _supportRequests = supportRequests;
+        _security =  securityService;
     }
 
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<UserResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<UserResponse>>> GetAll()
+    public async Task<ActionResult<IEnumerable<UserResponse>>> GetAll([FromHeader] string authorization)
     {
+        _security.VerifyJwtOrThrow(authorization);
+        
         var customers = await _users.GetAllAsync();
+        
         return Ok(customers.Select(x => x.ToResponse()));
     }
 
