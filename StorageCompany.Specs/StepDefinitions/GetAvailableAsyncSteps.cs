@@ -12,7 +12,9 @@ public class GetAvailableAsyncSteps
 {
     private static readonly Guid facilityAId = Guid.NewGuid();
     private static readonly Guid facilityBId = Guid.NewGuid();
+    private static readonly Guid facilityCId = Guid.NewGuid();
     private static readonly Guid unitTypeSmallId = Guid.NewGuid();
+    private static readonly Guid unitTypeMediumId = Guid.NewGuid();
     private static readonly Guid unitTypeLargeId = Guid.NewGuid();
 
     private readonly List<StorageUnit> _storageUnits = [];
@@ -27,6 +29,7 @@ public class GetAvailableAsyncSteps
     private static Guid ResolveStorageUnitType(string name) => name switch
     {
         "Small" => unitTypeSmallId,
+        "Medium" => unitTypeMediumId,
         "Large" => unitTypeLargeId,
         _ => throw new ArgumentException($"Unknown unit type: {name}")
     };
@@ -35,22 +38,25 @@ public class GetAvailableAsyncSteps
     {
         "Facility A" => facilityAId,
         "Facility B" => facilityBId,
+        "Facility C" => facilityCId,
         _ => throw new ArgumentException($"Unknown facility: {name}")
     };
 
     [Given("the following storage unit exists:")]
     public void GivenTheFollowingStorageUnitExists(DataTable table)
     {
-        var row = table.Rows[0];
-        _storageUnits.Add(new StorageUnit
+        foreach (var row in table.Rows)
         {
-            Id = Guid.NewGuid(),
-            FacilityId = ResolveFacility(row["Facility"]),
-            UnitTypeId = ResolveStorageUnitType(row["UnitType"]),
-            UnitNumber = row["UnitNumber"],
-            MonthlyPrice = decimal.Parse(row["MonthlyPrice"]),
-            Status = StorageUnitStatus.Available
-        });
+            _storageUnits.Add(new StorageUnit
+            {
+                Id = Guid.NewGuid(),
+                FacilityId = ResolveFacility(row["Facility"]),
+                UnitTypeId = ResolveStorageUnitType(row["UnitType"]),
+                UnitNumber = row["UnitNumber"],
+                MonthlyPrice = decimal.Parse(row["MonthlyPrice"]),
+                Status = StorageUnitStatus.Available
+            });
+        }
     }
 
     [When("I search for available storage units with no filters")]

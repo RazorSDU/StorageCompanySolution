@@ -7,6 +7,9 @@ Feature: GetAvailableAsync
     Given the following storage unit exists:
       | UnitNumber | Facility   | UnitType | MonthlyPrice |
       | U-01       | Facility A | Small    | 500          |
+      | U-02       | Facility A | Medium   | 800          |
+      | U-03       | Facility A | Small    | 450          |
+      | U-04       | Facility B | Medium   | 1200         |
 
   # A1
   Scenario: No filters returns all available storage units
@@ -45,7 +48,7 @@ Feature: GetAvailableAsync
 
   # A8
   Scenario: Non-matching facility filter returns no units
-    When I search for available storage units from facility "Facility B"
+    When I search for available storage units from facility "Facility C"
     Then I should receive an empty list of storage units
 
   # A9
@@ -65,5 +68,5 @@ Feature: GetAvailableAsync
 
   # A12
   Scenario: Matching unit type and price but non-matching facility returns no storage units
-    When I search for available storage units from facility "Facility B" with unit type "Small" and max price of 500
+    When I search for available storage units from facility "Facility C" with unit type "Small" and max price of 500
     Then I should receive an empty list of storage units
