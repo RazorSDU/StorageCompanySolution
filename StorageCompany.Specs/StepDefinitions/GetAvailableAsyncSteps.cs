@@ -42,7 +42,7 @@ public class GetAvailableAsyncSteps
         _ => throw new ArgumentException($"Unknown facility: {name}")
     };
 
-    [Given("the following storage unit exists:")]
+    [Given("the following storage units exist:")]
     public void GivenTheFollowingStorageUnitExists(DataTable table)
     {
         foreach (var row in table.Rows)

@@ -4,7 +4,7 @@ Feature: GetAvailableAsync
   So that I can rent one for my chosen period
 
   Background:
-    Given the following storage unit exists:
+    Given the following storage units exist:
       | UnitNumber | Facility   | UnitType | MonthlyPrice |
       | U-01       | Facility A | Small    | 500          |
       | U-02       | Facility A | Medium   | 800          |
