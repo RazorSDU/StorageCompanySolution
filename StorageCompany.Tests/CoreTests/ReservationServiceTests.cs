@@ -1,9 +1,9 @@
+using Moq;
 using StorageCompany.Core.Entities;
 using StorageCompany.Core.Enums;
 using StorageCompany.Core.Exceptions;
+using StorageCompany.Core.Interfaces.Repositories;
 using StorageCompany.Core.Services;
-using StorageCompany.Infrastructure.Data;
-using StorageCompany.Infrastructure.Repositories;
 using Xunit;
 
 namespace StorageCompany.Tests.CoreTests;
@@ -18,32 +18,35 @@ namespace StorageCompany.Tests.CoreTests;
 /// CancelAsync — CC = 3:
 ///   Paths 1–3  : DD-path tests
 ///   Paths 4–7  : Condition coverage tests
+///
+/// IMPORTANT: Add Moq to StorageCompany.Tests.csproj:
+///   <PackageReference Include="Moq" Version="4.20.70" />
 /// </summary>
-[Collection("MockDatabase")]
 public class ReservationServiceTests
 {
-    private readonly ReservationService _sut;
+    private readonly Mock<ICustomerRepository>     _customerRepo;
+    private readonly Mock<IStorageUnitRepository>  _storageUnitRepo;
+    private readonly Mock<IReservationRepository>  _reservationRepo;
+    private readonly ReservationService            _sut;
 
     public ReservationServiceTests()
     {
+        _customerRepo     = new Mock<ICustomerRepository>();
+        _storageUnitRepo  = new Mock<IStorageUnitRepository>();
+        _reservationRepo  = new Mock<IReservationRepository>();
+
         _sut = new ReservationService(
-            new CustomerRepository(),
-            new StorageUnitRepository(),
-            new ReservationRepository());
-
-        ResetState();
+            _customerRepo.Object,
+            _storageUnitRepo.Object,
+            _reservationRepo.Object);
     }
 
-    private static void ResetState()
-    {
-        lock (MockDatabase.SyncRoot)
-        {
-            MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitAarhusSmall).Status = StorageUnitStatus.Available;
-            MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitCphMedium).Status   = StorageUnitStatus.Rented;
-            MockDatabase.Customers.First(c => c.Id == MockDatabase.Ids.CustomerPeter).IsActive    = true;
-            MockDatabase.Reservations.Clear();
-        }
-    }
+    // ── Test data builders ────────────────────────────────────────────
+    private static Customer ActiveCustomer() => new() { IsActive = true };
+    private static Customer InactiveCustomer() => new() { IsActive = false };
+    private static StorageUnit AvailableUnit() => new() { Status = StorageUnitStatus.Available };
+    private static StorageUnit RentedUnit() => new() { Status = StorageUnitStatus.Rented };
+    private static StorageUnit ReservedUnit() => new() { Status = StorageUnitStatus.Reserved };
 
     // ══════════════════════════════════════════════════════════════════
     // CreateAsync — DD-path tests (Paths 1–8)
@@ -58,10 +61,7 @@ public class ReservationServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(
-                customerId,
-                MockDatabase.Ids.UnitAarhusSmall,
-                DateTime.UtcNow.Date.AddDays(1)));
+            _sut.CreateAsync(customerId, Guid.NewGuid(), DateTime.UtcNow.Date.AddDays(1)));
     }
 
     // Path 2: Storage unit ID is empty
@@ -73,10 +73,7 @@ public class ReservationServiceTests
 
         // Act & Assert
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(
-                MockDatabase.Ids.CustomerPeter,
-                storageUnitId,
-                DateTime.UtcNow.Date.AddDays(1)));
+            _sut.CreateAsync(Guid.NewGuid(), storageUnitId, DateTime.UtcNow.Date.AddDays(1)));
     }
 
     // Path 3: Customer is not found
@@ -84,14 +81,13 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenCustomerDoesNotExist_ThrowsNotFoundException()
     {
         // Arrange
-        var nonExistentCustomerId = Guid.NewGuid();
+        _customerRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync((Customer?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() =>
-            _sut.CreateAsync(
-                nonExistentCustomerId,
-                MockDatabase.Ids.UnitAarhusSmall,
-                DateTime.UtcNow.Date.AddDays(1)));
+            _sut.CreateAsync(Guid.NewGuid(), Guid.NewGuid(), DateTime.UtcNow.Date.AddDays(1)));
     }
 
     // Path 4: Customer is inactive
@@ -99,14 +95,13 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenCustomerIsInactive_ThrowsBusinessRuleException()
     {
         // Arrange
-        MockDatabase.Customers.First(c => c.Id == MockDatabase.Ids.CustomerPeter).IsActive = false;
+        _customerRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(InactiveCustomer());
 
         // Act & Assert
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(
-                MockDatabase.Ids.CustomerPeter,
-                MockDatabase.Ids.UnitAarhusSmall,
-                DateTime.UtcNow.Date.AddDays(1)));
+            _sut.CreateAsync(Guid.NewGuid(), Guid.NewGuid(), DateTime.UtcNow.Date.AddDays(1)));
     }
 
     // Path 5: Storage unit is not found
@@ -114,14 +109,17 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenStorageUnitDoesNotExist_ThrowsNotFoundException()
     {
         // Arrange
-        var nonExistentUnitId = Guid.NewGuid();
+        _customerRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(ActiveCustomer());
+
+        _storageUnitRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync((StorageUnit?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() =>
-            _sut.CreateAsync(
-                MockDatabase.Ids.CustomerPeter,
-                nonExistentUnitId,
-                DateTime.UtcNow.Date.AddDays(1)));
+            _sut.CreateAsync(Guid.NewGuid(), Guid.NewGuid(), DateTime.UtcNow.Date.AddDays(1)));
     }
 
     // Path 6: Storage unit is not available
@@ -129,14 +127,17 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenStorageUnitIsNotAvailable_ThrowsBusinessRuleException()
     {
         // Arrange
-        // UnitCphMedium is seeded as Rented
+        _customerRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(ActiveCustomer());
+
+        _storageUnitRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(RentedUnit());
 
         // Act & Assert
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(
-                MockDatabase.Ids.CustomerPeter,
-                MockDatabase.Ids.UnitCphMedium,
-                DateTime.UtcNow.Date.AddDays(1)));
+            _sut.CreateAsync(Guid.NewGuid(), Guid.NewGuid(), DateTime.UtcNow.Date.AddDays(1)));
     }
 
     // Path 7: Move-in date is in the past
@@ -144,14 +145,19 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenMoveInDateIsInThePast_ThrowsBusinessRuleException()
     {
         // Arrange
+        _customerRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(ActiveCustomer());
+
+        _storageUnitRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(AvailableUnit());
+
         var pastDate = DateTime.UtcNow.Date.AddDays(-1);
 
         // Act & Assert
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(
-                MockDatabase.Ids.CustomerPeter,
-                MockDatabase.Ids.UnitAarhusSmall,
-                pastDate));
+            _sut.CreateAsync(Guid.NewGuid(), Guid.NewGuid(), pastDate));
     }
 
     // Path 8: Reservation is successfully created
@@ -159,18 +165,23 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenAllInputIsValid_ReturnsConfirmedReservationAndSetsUnitToReserved()
     {
         // Arrange
-        var moveInDate = DateTime.UtcNow.Date.AddDays(1);
+        var unit = AvailableUnit();
+
+        _customerRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(ActiveCustomer());
+
+        _storageUnitRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(unit);
+
+        var futureDate = DateTime.UtcNow.Date.AddDays(1);
 
         // Act
-        var reservation = await _sut.CreateAsync(
-            MockDatabase.Ids.CustomerPeter,
-            MockDatabase.Ids.UnitAarhusSmall,
-            moveInDate);
+        var reservation = await _sut.CreateAsync(Guid.NewGuid(), Guid.NewGuid(), futureDate);
 
         // Assert
         Assert.Equal(ReservationStatus.Confirmed, reservation.Status);
-
-        var unit = MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitAarhusSmall);
         Assert.Equal(StorageUnitStatus.Reserved, unit.Status);
     }
 
@@ -185,14 +196,19 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenMoveInDateIsYesterday_ThrowsBusinessRuleException()
     {
         // Arrange
+        _customerRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(ActiveCustomer());
+
+        _storageUnitRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(AvailableUnit());
+
         var yesterday = DateTime.UtcNow.Date.AddDays(-1);
 
         // Act & Assert
         await Assert.ThrowsAsync<BusinessRuleException>(() =>
-            _sut.CreateAsync(
-                MockDatabase.Ids.CustomerPeter,
-                MockDatabase.Ids.UnitAarhusSmall,
-                yesterday));
+            _sut.CreateAsync(Guid.NewGuid(), Guid.NewGuid(), yesterday));
     }
 
     // Move-in date is equal to today's date → succeeds (boundary: < is strict, so today passes)
@@ -200,13 +216,18 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenMoveInDateIsToday_Succeeds()
     {
         // Arrange
+        _customerRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(ActiveCustomer());
+
+        _storageUnitRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(AvailableUnit());
+
         var today = DateTime.UtcNow.Date;
 
         // Act
-        var reservation = await _sut.CreateAsync(
-            MockDatabase.Ids.CustomerPeter,
-            MockDatabase.Ids.UnitAarhusSmall,
-            today);
+        var reservation = await _sut.CreateAsync(Guid.NewGuid(), Guid.NewGuid(), today);
 
         // Assert
         Assert.Equal(ReservationStatus.Confirmed, reservation.Status);
@@ -217,13 +238,18 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenMoveInDateIsInTheFuture_Succeeds()
     {
         // Arrange
+        _customerRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(ActiveCustomer());
+
+        _storageUnitRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(AvailableUnit());
+
         var futureDate = DateTime.UtcNow.Date.AddDays(7);
 
         // Act
-        var reservation = await _sut.CreateAsync(
-            MockDatabase.Ids.CustomerPeter,
-            MockDatabase.Ids.UnitAarhusSmall,
-            futureDate);
+        var reservation = await _sut.CreateAsync(Guid.NewGuid(), Guid.NewGuid(), futureDate);
 
         // Assert
         Assert.Equal(ReservationStatus.Confirmed, reservation.Status);
@@ -238,22 +264,18 @@ public class ReservationServiceTests
     public async Task CancelAsync_WhenReservationIsAlreadyCancelledOrExpired_ReturnsImmediatelyWithoutChanges()
     {
         // Arrange
-        var reservation = await _sut.CreateAsync(
-            MockDatabase.Ids.CustomerPeter,
-            MockDatabase.Ids.UnitAarhusSmall,
-            DateTime.UtcNow.Date.AddDays(1));
+        var reservation = new Reservation { Status = ReservationStatus.Cancelled };
 
-        reservation.Status = ReservationStatus.Cancelled;
-        var unitStatusBefore = MockDatabase.StorageUnits
-            .First(u => u.Id == MockDatabase.Ids.UnitAarhusSmall).Status;
+        _reservationRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(reservation);
 
         // Act
-        await _sut.CancelAsync(reservation.Id);
+        await _sut.CancelAsync(Guid.NewGuid());
 
-        // Assert
+        // Assert — status unchanged and UpdateAsync was never called
         Assert.Equal(ReservationStatus.Cancelled, reservation.Status);
-        Assert.Equal(unitStatusBefore, MockDatabase.StorageUnits
-            .First(u => u.Id == MockDatabase.Ids.UnitAarhusSmall).Status);
+        _reservationRepo.Verify(r => r.UpdateAsync(It.IsAny<Reservation>()), Times.Never);
     }
 
     // Path 2: Reservation is cancellable and the unit is still reserved — both get updated
@@ -261,18 +283,27 @@ public class ReservationServiceTests
     public async Task CancelAsync_WhenReservationIsConfirmedAndUnitIsReserved_CancelsAndFreesUnit()
     {
         // Arrange
-        var reservation = await _sut.CreateAsync(
-            MockDatabase.Ids.CustomerPeter,
-            MockDatabase.Ids.UnitAarhusSmall,
-            DateTime.UtcNow.Date.AddDays(1));
+        var unit = ReservedUnit();
+        var reservation = new Reservation
+        {
+            Status        = ReservationStatus.Confirmed,
+            StorageUnitId = Guid.NewGuid()
+        };
+
+        _reservationRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(reservation);
+
+        _storageUnitRepo
+            .Setup(r => r.GetByIdAsync(reservation.StorageUnitId))
+            .ReturnsAsync(unit);
 
         // Act
-        await _sut.CancelAsync(reservation.Id);
+        await _sut.CancelAsync(Guid.NewGuid());
 
         // Assert
         Assert.Equal(ReservationStatus.Cancelled, reservation.Status);
-        Assert.Equal(StorageUnitStatus.Available,
-            MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitAarhusSmall).Status);
+        Assert.Equal(StorageUnitStatus.Available, unit.Status);
     }
 
     // Path 3: Reservation is cancellable but the unit is not released
@@ -281,30 +312,35 @@ public class ReservationServiceTests
     public async Task CancelAsync_WhenReservationIsConfirmedButUnitIsNotReserved_CancelsWithoutChangingUnit()
     {
         // Arrange
-        var reservation = await _sut.CreateAsync(
-            MockDatabase.Ids.CustomerPeter,
-            MockDatabase.Ids.UnitAarhusSmall,
-            DateTime.UtcNow.Date.AddDays(1));
+        var unit = AvailableUnit(); // not Reserved
+        var reservation = new Reservation
+        {
+            Status        = ReservationStatus.Confirmed,
+            StorageUnitId = Guid.NewGuid()
+        };
 
-        // Simulate unit having been changed to a non-Reserved status before cancel runs
-        MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitAarhusSmall).Status
-            = StorageUnitStatus.Rented;
+        _reservationRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(reservation);
+
+        _storageUnitRepo
+            .Setup(r => r.GetByIdAsync(reservation.StorageUnitId))
+            .ReturnsAsync(unit);
 
         // Act
-        await _sut.CancelAsync(reservation.Id);
+        await _sut.CancelAsync(Guid.NewGuid());
 
-        // Assert
+        // Assert — reservation cancelled, unit unchanged
         Assert.Equal(ReservationStatus.Cancelled, reservation.Status);
-        // Unit must NOT have been reset — it was Rented, and the if-guard was false
-        Assert.Equal(StorageUnitStatus.Rented,
-            MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitAarhusSmall).Status);
+        Assert.Equal(StorageUnitStatus.Available, unit.Status);
+        _storageUnitRepo.Verify(r => r.UpdateAsync(It.IsAny<StorageUnit>()), Times.Never);
     }
 
     // ══════════════════════════════════════════════════════════════════
     // CancelAsync — Condition coverage
-    // The if-condition is: status is Cancelled or Expired (compound or)
+    // Condition 1: status is Cancelled or Expired (compound or)
     //   → test each sub-condition individually
-    // The second if is: unit is not null && unit.Status == Reserved (compound and)
+    // Condition 2: unit is not null && unit.Status == Reserved (compound and)
     //   → test unit == null and unit.Status != Reserved separately
     // ══════════════════════════════════════════════════════════════════
 
@@ -313,18 +349,18 @@ public class ReservationServiceTests
     public async Task CancelAsync_WhenReservationStatusIsCancelled_ReturnsImmediately()
     {
         // Arrange
-        var reservation = await _sut.CreateAsync(
-            MockDatabase.Ids.CustomerPeter,
-            MockDatabase.Ids.UnitAarhusSmall,
-            DateTime.UtcNow.Date.AddDays(1));
+        var reservation = new Reservation { Status = ReservationStatus.Cancelled };
 
-        reservation.Status = ReservationStatus.Cancelled;
+        _reservationRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(reservation);
 
         // Act
-        await _sut.CancelAsync(reservation.Id);
+        await _sut.CancelAsync(Guid.NewGuid());
 
         // Assert
         Assert.Equal(ReservationStatus.Cancelled, reservation.Status);
+        _reservationRepo.Verify(r => r.UpdateAsync(It.IsAny<Reservation>()), Times.Never);
     }
 
     // Reservation status is Expired → early return
@@ -332,18 +368,18 @@ public class ReservationServiceTests
     public async Task CancelAsync_WhenReservationStatusIsExpired_ReturnsImmediately()
     {
         // Arrange
-        var reservation = await _sut.CreateAsync(
-            MockDatabase.Ids.CustomerPeter,
-            MockDatabase.Ids.UnitAarhusSmall,
-            DateTime.UtcNow.Date.AddDays(1));
+        var reservation = new Reservation { Status = ReservationStatus.Expired };
 
-        reservation.Status = ReservationStatus.Expired;
+        _reservationRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(reservation);
 
         // Act
-        await _sut.CancelAsync(reservation.Id);
+        await _sut.CancelAsync(Guid.NewGuid());
 
         // Assert
         Assert.Equal(ReservationStatus.Expired, reservation.Status);
+        _reservationRepo.Verify(r => r.UpdateAsync(It.IsAny<Reservation>()), Times.Never);
     }
 
     // Reservation is cancellable, but the storage unit does not exist
@@ -352,27 +388,26 @@ public class ReservationServiceTests
     public async Task CancelAsync_WhenReservationIsConfirmedAndUnitDoesNotExist_CancelsWithoutFreeing()
     {
         // Arrange
-        // Inject a reservation pointing to a unit ID that does not exist in MockDatabase
-        var fakeReservation = new Reservation
+        var reservation = new Reservation
         {
-            Id = Guid.NewGuid(),
-            CustomerId = MockDatabase.Ids.CustomerPeter,
-            StorageUnitId = Guid.NewGuid(), // non-existent unit
-            ReservationDateUtc = DateTime.UtcNow,
-            MoveInDateUtc = DateTime.UtcNow.Date.AddDays(1),
-            ExpiresAtUtc = DateTime.UtcNow.AddDays(7),
-            Status = ReservationStatus.Confirmed,
-            CreatedAtUtc = DateTime.UtcNow
+            Status        = ReservationStatus.Confirmed,
+            StorageUnitId = Guid.NewGuid()
         };
 
-        lock (MockDatabase.SyncRoot)
-            MockDatabase.Reservations.Add(fakeReservation);
+        _reservationRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(reservation);
+
+        _storageUnitRepo
+            .Setup(r => r.GetByIdAsync(reservation.StorageUnitId))
+            .ReturnsAsync((StorageUnit?)null);
 
         // Act
-        await _sut.CancelAsync(fakeReservation.Id);
+        await _sut.CancelAsync(Guid.NewGuid());
 
         // Assert
-        Assert.Equal(ReservationStatus.Cancelled, fakeReservation.Status);
+        Assert.Equal(ReservationStatus.Cancelled, reservation.Status);
+        _storageUnitRepo.Verify(r => r.UpdateAsync(It.IsAny<StorageUnit>()), Times.Never);
     }
 
     // Reservation is cancellable, and the storage unit exists, but its status is not Reserved
@@ -381,22 +416,26 @@ public class ReservationServiceTests
     public async Task CancelAsync_WhenReservationIsConfirmedAndUnitExistsButIsNotReserved_CancelsWithoutChangingUnit()
     {
         // Arrange
-        var reservation = await _sut.CreateAsync(
-            MockDatabase.Ids.CustomerPeter,
-            MockDatabase.Ids.UnitAarhusSmall,
-            DateTime.UtcNow.Date.AddDays(1));
+        var unit = AvailableUnit();
+        var reservation = new Reservation
+        {
+            Status        = ReservationStatus.Confirmed,
+            StorageUnitId = Guid.NewGuid()
+        };
 
-        // Move unit away from Reserved status
-        MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitAarhusSmall).Status
-            = StorageUnitStatus.Available;
+        _reservationRepo
+            .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(reservation);
+
+        _storageUnitRepo
+            .Setup(r => r.GetByIdAsync(reservation.StorageUnitId))
+            .ReturnsAsync(unit);
 
         // Act
-        await _sut.CancelAsync(reservation.Id);
+        await _sut.CancelAsync(Guid.NewGuid());
 
         // Assert
         Assert.Equal(ReservationStatus.Cancelled, reservation.Status);
-        // Unit was Available before cancel, and must still be Available (not changed)
-        Assert.Equal(StorageUnitStatus.Available,
-            MockDatabase.StorageUnits.First(u => u.Id == MockDatabase.Ids.UnitAarhusSmall).Status);
+        _storageUnitRepo.Verify(r => r.UpdateAsync(It.IsAny<StorageUnit>()), Times.Never);
     }
 }
