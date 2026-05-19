@@ -10,7 +10,7 @@ namespace StorageCompany.Specs.StepDefinitions;
 [Binding]
 public class CreateAsyncSteps
 {
-    private readonly List<Customer> _customers = [];
+    private readonly List<User> _customers = [];
     private readonly List<StorageUnit> _storageUnits = [];
     private readonly List<Reservation> _reservations = [];
     private readonly ReservationService _reservationService;
@@ -37,7 +37,7 @@ public class CreateAsyncSteps
     [Given("an inactive customer")]
     public void GivenInactiveCustomer()
     {
-        var customer = new Customer { Id = Guid.NewGuid(), IsActive = false };
+        var customer = new User { Id = Guid.NewGuid(), IsActive = false };
         _customers.Add(customer);
         customerId = customer.Id;
     }
@@ -45,7 +45,7 @@ public class CreateAsyncSteps
     [Given("an active customer")]
     public void GivenActiveCustomer()
     {
-        var customer = new Customer { Id = Guid.NewGuid(), IsActive = true };
+        var customer = new User { Id = Guid.NewGuid(), IsActive = true };
         _customers.Add(customer);
         customerId = customer.Id;
     }

@@ -109,6 +109,10 @@ StyleCopReport.xml
 # Chutzpah Test files
 _Chutzpah*
 
+# Cucumber .feature.cs files
+
+*.feature.cs
+
 # Visual C++ cache files
 ipch/
 *.aps
