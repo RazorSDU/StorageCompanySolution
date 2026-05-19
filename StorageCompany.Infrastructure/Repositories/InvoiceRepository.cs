@@ -15,7 +15,7 @@ public class InvoiceRepository : InMemoryRepository<Invoice>, IInvoiceRepository
         lock (MockDatabase.SyncRoot)
         {
             var result = MockDatabase.Invoices
-                .Where(invoice => invoice.CustomerId == customerId)
+                .Where(invoice => invoice.UserId == customerId)
                 .OrderByDescending(invoice => invoice.CreatedAtUtc)
                 .ToList();
 

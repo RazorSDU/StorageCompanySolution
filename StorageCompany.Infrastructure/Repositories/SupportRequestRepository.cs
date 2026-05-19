@@ -15,7 +15,7 @@ public class SupportRequestRepository : InMemoryRepository<SupportRequest>, ISup
         lock (MockDatabase.SyncRoot)
         {
             var result = MockDatabase.SupportRequests
-                .Where(request => request.CustomerId == customerId)
+                .Where(request => request.UserId == customerId)
                 .OrderByDescending(request => request.CreatedAtUtc)
                 .ToList();
 

@@ -1,0 +1,8 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace StorageCompany.Core;
+
+public sealed class AppOptions
+{
+    [Required] public string JwtSecret { get; set; } = string.Empty;
+}

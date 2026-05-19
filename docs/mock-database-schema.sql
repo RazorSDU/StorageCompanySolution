@@ -1,13 +1,15 @@
 -- Future SQL schema draft for the Storage Company showcase project.
 -- The running API uses in-memory repositories, but these tables show how a real database could look later.
 
-CREATE TABLE Customers (
-    CustomerId UNIQUEIDENTIFIER PRIMARY KEY,
+CREATE TABLE Users (
+    UserId UNIQUEIDENTIFIER PRIMARY KEY,
     FirstName NVARCHAR(100) NOT NULL,
     LastName NVARCHAR(100) NOT NULL,
     Email NVARCHAR(255) NOT NULL UNIQUE,
     PhoneNumber NVARCHAR(50) NULL,
     PasswordHash NVARCHAR(500) NOT NULL,
+    PasswordSalt NVARCHAR(500) NOT NULL,
+    Role NVARCHAR(50) NOT NULL,
     CreatedAtUtc DATETIME2 NOT NULL,
     IsActive BIT NOT NULL
 );
@@ -55,47 +57,47 @@ CREATE TABLE StorageUnits (
 
 CREATE TABLE Reservations (
     ReservationId UNIQUEIDENTIFIER PRIMARY KEY,
-    CustomerId UNIQUEIDENTIFIER NOT NULL,
+    UserId UNIQUEIDENTIFIER NOT NULL,
     StorageUnitId UNIQUEIDENTIFIER NOT NULL,
     ReservationDateUtc DATETIME2 NOT NULL,
     MoveInDateUtc DATETIME2 NOT NULL,
     ExpiresAtUtc DATETIME2 NULL,
     Status NVARCHAR(30) NOT NULL,
     CreatedAtUtc DATETIME2 NOT NULL,
-    CONSTRAINT FK_Reservations_Customers FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId),
+    CONSTRAINT FK_Reservations_Users FOREIGN KEY (UserId) REFERENCES Users(UserId),
     CONSTRAINT FK_Reservations_StorageUnits FOREIGN KEY (StorageUnitId) REFERENCES StorageUnits(StorageUnitId)
 );
 
 CREATE TABLE Rentals (
     RentalId UNIQUEIDENTIFIER PRIMARY KEY,
-    CustomerId UNIQUEIDENTIFIER NOT NULL,
+    UserId UNIQUEIDENTIFIER NOT NULL,
     StorageUnitId UNIQUEIDENTIFIER NOT NULL,
     StartDateUtc DATETIME2 NOT NULL,
     EndDateUtc DATETIME2 NULL,
     MonthlyPrice DECIMAL(10,2) NOT NULL,
     Status NVARCHAR(30) NOT NULL,
     CreatedAtUtc DATETIME2 NOT NULL,
-    CONSTRAINT FK_Rentals_Customers FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId),
+    CONSTRAINT FK_Rentals_Users FOREIGN KEY (UserId) REFERENCES Users(UserId),
     CONSTRAINT FK_Rentals_StorageUnits FOREIGN KEY (StorageUnitId) REFERENCES StorageUnits(StorageUnitId)
 );
 
 CREATE TABLE Invoices (
     InvoiceId UNIQUEIDENTIFIER PRIMARY KEY,
     RentalId UNIQUEIDENTIFIER NOT NULL,
-    CustomerId UNIQUEIDENTIFIER NOT NULL,
+    UserId UNIQUEIDENTIFIER NOT NULL,
     InvoiceNumber NVARCHAR(100) NOT NULL UNIQUE,
     Amount DECIMAL(10,2) NOT NULL,
     DueDateUtc DATETIME2 NOT NULL,
     Status NVARCHAR(30) NOT NULL,
     CreatedAtUtc DATETIME2 NOT NULL,
     CONSTRAINT FK_Invoices_Rentals FOREIGN KEY (RentalId) REFERENCES Rentals(RentalId),
-    CONSTRAINT FK_Invoices_Customers FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId)
+    CONSTRAINT FK_Invoices_Users FOREIGN KEY (UserId) REFERENCES Users(UserId)
 );
 
 CREATE TABLE Payments (
     PaymentId UNIQUEIDENTIFIER PRIMARY KEY,
     RentalId UNIQUEIDENTIFIER NOT NULL,
-    CustomerId UNIQUEIDENTIFIER NOT NULL,
+    UserId UNIQUEIDENTIFIER NOT NULL,
     InvoiceId UNIQUEIDENTIFIER NULL,
     Amount DECIMAL(10,2) NOT NULL,
     PaymentDateUtc DATETIME2 NOT NULL,
@@ -104,7 +106,7 @@ CREATE TABLE Payments (
     TransactionReference NVARCHAR(100) NULL,
     CreatedAtUtc DATETIME2 NOT NULL,
     CONSTRAINT FK_Payments_Rentals FOREIGN KEY (RentalId) REFERENCES Rentals(RentalId),
-    CONSTRAINT FK_Payments_Customers FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId),
+    CONSTRAINT FK_Payments_Users FOREIGN KEY (UserId) REFERENCES Users(UserId),
     CONSTRAINT FK_Payments_Invoices FOREIGN KEY (InvoiceId) REFERENCES Invoices(InvoiceId)
 );
 
@@ -120,12 +122,12 @@ CREATE TABLE AccessCodes (
 
 CREATE TABLE SupportRequests (
     SupportRequestId UNIQUEIDENTIFIER PRIMARY KEY,
-    CustomerId UNIQUEIDENTIFIER NOT NULL,
+    UserId UNIQUEIDENTIFIER NOT NULL,
     RentalId UNIQUEIDENTIFIER NULL,
     Subject NVARCHAR(255) NOT NULL,
     Message NVARCHAR(MAX) NOT NULL,
     Status NVARCHAR(30) NOT NULL,
     CreatedAtUtc DATETIME2 NOT NULL,
-    CONSTRAINT FK_SupportRequests_Customers FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId),
+    CONSTRAINT FK_SupportRequests_Users FOREIGN KEY (UserId) REFERENCES Users(UserId),
     CONSTRAINT FK_SupportRequests_Rentals FOREIGN KEY (RentalId) REFERENCES Rentals(RentalId)
 );

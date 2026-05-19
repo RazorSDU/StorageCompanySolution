@@ -9,16 +9,16 @@ namespace StorageCompany.Core.Services;
 
 public class ReservationService : IReservationService
 {
-    private readonly ICustomerRepository _customers;
+    private readonly IUserRepository _users;
     private readonly IStorageUnitRepository _storageUnits;
     private readonly IReservationRepository _reservations;
 
     public ReservationService(
-        ICustomerRepository customers,
+        IUserRepository users,
         IStorageUnitRepository storageUnits,
         IReservationRepository reservations)
     {
-        _customers = customers;
+        _users = users;
         _storageUnits = storageUnits;
         _reservations = reservations;
     }
@@ -28,11 +28,11 @@ public class ReservationService : IReservationService
         Guard.AgainstEmpty(customerId, nameof(customerId));
         Guard.AgainstEmpty(storageUnitId, nameof(storageUnitId));
 
-        var customer = await _customers.GetByIdAsync(customerId)
-            ?? throw new NotFoundException($"Customer '{customerId}' was not found.");
+        var customer = await _users.GetByIdAsync(customerId)
+            ?? throw new NotFoundException($"User '{customerId}' was not found.");
 
         if (!customer.IsActive)
-            throw new BusinessRuleException("Inactive customers cannot create reservations.");
+            throw new BusinessRuleException("Inactive users cannot create reservations.");
 
         var unit = await _storageUnits.GetByIdAsync(storageUnitId)
             ?? throw new NotFoundException($"Storage unit '{storageUnitId}' was not found.");

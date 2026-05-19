@@ -1,79 +1,92 @@
 using System.Text.Json.Serialization;
+using NSwag;
+using NSwag.Generation.Processors.Security;
+using Scalar.AspNetCore;
 using StorageCompany.Api.Middleware;
+using StorageCompany.Core;
 using StorageCompany.Core.Interfaces.Repositories;
 using StorageCompany.Core.Interfaces.Services;
 using StorageCompany.Core.Services;
 using StorageCompany.Infrastructure.Repositories;
 
-var builder = WebApplication.CreateBuilder(args);
 
-builder.Services
-    .AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    });
+namespace StorageCompany.Api;
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
+public class Program
 {
-    options.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
+    public static async Task Main(string[] args)
     {
-        Title = "Storage Company Showcase API",
-        Version = "v1",
-        Description = "A mock storage unit rental API built with a SOLID-friendly Core/API/Infrastructure structure."
-    });
-});
+        var builder = WebApplication.CreateBuilder(args);
+        
+        builder.Services
+            .AddOptions<AppOptions>()
+            .Bind(builder.Configuration.GetSection("AppOptions"))
+            .ValidateDataAnnotations()
+            .Validate(options => !string.IsNullOrWhiteSpace(options.JwtSecret), "JwtSecret is required")
+            .ValidateOnStart();
 
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("DevelopmentCors", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
-});
+        builder.Services
+            .AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
 
-// Repositories: infrastructure implementations behind Core interfaces.
-builder.Services.AddSingleton<ICustomerRepository, CustomerRepository>();
-builder.Services.AddSingleton<IFacilityRepository, FacilityRepository>();
-builder.Services.AddSingleton<IStorageUnitTypeRepository, StorageUnitTypeRepository>();
-builder.Services.AddSingleton<IStorageUnitRepository, StorageUnitRepository>();
-builder.Services.AddSingleton<IReservationRepository, ReservationRepository>();
-builder.Services.AddSingleton<IRentalRepository, RentalRepository>();
-builder.Services.AddSingleton<IPaymentRepository, PaymentRepository>();
-builder.Services.AddSingleton<IInvoiceRepository, InvoiceRepository>();
-builder.Services.AddSingleton<IAccessCodeRepository, AccessCodeRepository>();
-builder.Services.AddSingleton<ISupportRequestRepository, SupportRequestRepository>();
+        builder.Services.AddEndpointsApiExplorer();
 
-// Core business services.
-builder.Services.AddScoped<ICustomerService, CustomerService>();
-builder.Services.AddScoped<IFacilityService, FacilityService>();
-builder.Services.AddScoped<IStorageUnitTypeService, StorageUnitTypeService>();
-builder.Services.AddScoped<IStorageUnitService, StorageUnitService>();
-builder.Services.AddScoped<IReservationService, ReservationService>();
-builder.Services.AddScoped<IRentalService, RentalService>();
-builder.Services.AddScoped<IPaymentService, PaymentService>();
-builder.Services.AddScoped<IInvoiceService, InvoiceService>();
-builder.Services.AddScoped<IAccessCodeService, AccessCodeService>();
-builder.Services.AddScoped<ISupportRequestService, SupportRequestService>();
+        builder.Services.AddOpenApiDocument();
 
-var app = builder.Build();
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("DevelopmentCors", policy =>
+            {
+                policy.AllowAnyOrigin()
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+            });
+        });
 
-app.UseMiddleware<ErrorHandlingMiddleware>();
+        // Repositories: infrastructure implementations behind Core interfaces.
+        builder.Services.AddSingleton<IUserRepository, UserRepository>();
+        builder.Services.AddSingleton<IFacilityRepository, FacilityRepository>();
+        builder.Services.AddSingleton<IStorageUnitTypeRepository, StorageUnitTypeRepository>();
+        builder.Services.AddSingleton<IStorageUnitRepository, StorageUnitRepository>();
+        builder.Services.AddSingleton<IReservationRepository, ReservationRepository>();
+        builder.Services.AddSingleton<IRentalRepository, RentalRepository>();
+        builder.Services.AddSingleton<IPaymentRepository, PaymentRepository>();
+        builder.Services.AddSingleton<IInvoiceRepository, InvoiceRepository>();
+        builder.Services.AddSingleton<IAccessCodeRepository, AccessCodeRepository>();
+        builder.Services.AddSingleton<ISupportRequestRepository, SupportRequestRepository>();
 
-app.UseSwagger();
-app.UseSwaggerUI(options =>
-{
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "Storage Company Showcase API v1");
-    options.RoutePrefix = "swagger";
-});
+        // Core business services.
+        builder.Services.AddScoped<IUserService, UserService>();
+        builder.Services.AddScoped<IFacilityService, FacilityService>();
+        builder.Services.AddScoped<IStorageUnitTypeService, StorageUnitTypeService>();
+        builder.Services.AddScoped<IStorageUnitService, StorageUnitService>();
+        builder.Services.AddScoped<IReservationService, ReservationService>();
+        builder.Services.AddScoped<IRentalService, RentalService>();
+        builder.Services.AddScoped<IPaymentService, PaymentService>();
+        builder.Services.AddScoped<IInvoiceService, InvoiceService>();
+        builder.Services.AddScoped<IAccessCodeService, AccessCodeService>();
+        builder.Services.AddScoped<ISupportRequestService, SupportRequestService>();
+        builder.Services.AddScoped<ISecurityService, SecurityService>();
 
-app.UseHttpsRedirection();
-app.UseCors("DevelopmentCors");
-app.MapControllers();
+        var app = builder.Build();
 
-app.MapGet("/", () => Results.Redirect("/swagger"));
+        app.UseMiddleware<ErrorHandlingMiddleware>();
 
-app.Run();
+        app.UseHttpsRedirection();
+        app.UseCors("DevelopmentCors");
+        app.MapControllers();
+
+       
+        app.UseOpenApi(conf =>
+        {
+            conf.Path = "openapi/v1.json";
+        });
+        app.MapScalarApiReference();
+        
+
+        app.Run();
+    }
+}

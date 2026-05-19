@@ -10,16 +10,16 @@ namespace StorageCompany.Core.Services;
 public class SupportRequestService : ISupportRequestService
 {
     private readonly ISupportRequestRepository _supportRequests;
-    private readonly ICustomerRepository _customers;
+    private readonly IUserRepository _users;
     private readonly IRentalRepository _rentals;
 
     public SupportRequestService(
         ISupportRequestRepository supportRequests,
-        ICustomerRepository customers,
+        IUserRepository users,
         IRentalRepository rentals)
     {
         _supportRequests = supportRequests;
-        _customers = customers;
+        _users = users;
         _rentals = rentals;
     }
 
@@ -29,25 +29,25 @@ public class SupportRequestService : ISupportRequestService
         Guard.AgainstBlank(subject, nameof(subject));
         Guard.AgainstBlank(message, nameof(message));
 
-        var customer = await _customers.GetByIdAsync(customerId)
-            ?? throw new NotFoundException($"Customer '{customerId}' was not found.");
+        var customer = await _users.GetByIdAsync(customerId)
+            ?? throw new NotFoundException($"User '{customerId}' was not found.");
 
         if (!customer.IsActive)
-            throw new BusinessRuleException("Inactive customers cannot create support requests.");
+            throw new BusinessRuleException("Inactive users cannot create support requests.");
 
         if (rentalId.HasValue)
         {
             var rental = await _rentals.GetByIdAsync(rentalId.Value)
                 ?? throw new NotFoundException($"Rental '{rentalId}' was not found.");
 
-            if (rental.CustomerId != customerId)
+            if (rental.UserId != customerId)
                 throw new BusinessRuleException("The selected rental does not belong to this customer.");
         }
 
         var request = new SupportRequest
         {
             Id = Guid.NewGuid(),
-            CustomerId = customerId,
+            UserId = customerId,
             RentalId = rentalId,
             Subject = subject.Trim(),
             Message = message.Trim(),

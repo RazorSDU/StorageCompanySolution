@@ -8,52 +8,58 @@ namespace StorageCompany.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class CustomersController : ControllerBase
+public class UserController : ControllerBase
 {
-    private readonly ICustomerService _customers;
+    private readonly IUserService _users;
     private readonly IRentalService _rentals;
     private readonly IReservationService _reservations;
     private readonly IPaymentService _payments;
     private readonly IInvoiceService _invoices;
     private readonly ISupportRequestService _supportRequests;
+    private readonly ISecurityService _security;
 
-    public CustomersController(
-        ICustomerService customers,
+    public UserController(
+        IUserService users,
         IRentalService rentals,
         IReservationService reservations,
         IPaymentService payments,
         IInvoiceService invoices,
-        ISupportRequestService supportRequests)
+        ISupportRequestService supportRequests,
+        ISecurityService securityService)
     {
-        _customers = customers;
+        _users = users;
         _rentals = rentals;
         _reservations = reservations;
         _payments = payments;
         _invoices = invoices;
         _supportRequests = supportRequests;
+        _security =  securityService;
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(IEnumerable<CustomerResponse>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<CustomerResponse>>> GetAll()
+    [ProducesResponseType(typeof(IEnumerable<UserResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<UserResponse>>> GetAll([FromHeader] string authorization)
     {
-        var customers = await _customers.GetAllAsync();
+        _security.VerifyJwtOrThrow(authorization);
+        
+        var customers = await _users.GetAllAsync();
+        
         return Ok(customers.Select(x => x.ToResponse()));
     }
 
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof(CustomerResponse), StatusCodes.Status200OK)]
-    public async Task<ActionResult<CustomerResponse>> GetById(Guid id)
+    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<UserResponse>> GetById(Guid id)
     {
-        var customer = await _customers.GetByIdAsync(id);
+        var customer = await _users.GetByIdAsync(id);
         return Ok(customer.ToResponse());
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(CustomerResponse), StatusCodes.Status201Created)]
-    public async Task<ActionResult<CustomerResponse>> Create(CreateCustomerRequest request)
+    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status201Created)]
+    public async Task<ActionResult<UserResponse>> Create(CreateUserRequest request)
     {
-        var customer = await _customers.CreateAsync(
+        var customer = await _users.CreateAsync(
             request.FirstName,
             request.LastName,
             request.Email,
@@ -64,10 +70,10 @@ public class CustomersController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(typeof(CustomerResponse), StatusCodes.Status200OK)]
-    public async Task<ActionResult<CustomerResponse>> Update(Guid id, UpdateCustomerRequest request)
+    [ProducesResponseType(typeof(UserResponse), StatusCodes.Status200OK)]
+    public async Task<ActionResult<UserResponse>> Update(Guid id, UpdateUserRequest request)
     {
-        var customer = await _customers.UpdateAsync(id, request.FirstName, request.LastName, request.PhoneNumber, request.IsActive);
+        var customer = await _users.UpdateAsync(id, request.FirstName, request.LastName, request.PhoneNumber, request.IsActive);
         return Ok(customer.ToResponse());
     }
 

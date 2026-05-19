@@ -29,7 +29,7 @@ public class InvoiceService : IInvoiceService
         {
             Id = Guid.NewGuid(),
             RentalId = rental.Id,
-            CustomerId = rental.CustomerId,
+            UserId = rental.UserId,
             InvoiceNumber = $"INV-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}",
             Amount = rental.MonthlyPrice,
             DueDateUtc = DateTime.SpecifyKind(dueDateUtc, DateTimeKind.Utc),

@@ -52,7 +52,7 @@ public class PaymentService : IPaymentService
         {
             Id = Guid.NewGuid(),
             RentalId = rental.Id,
-            CustomerId = rental.CustomerId,
+            UserId = rental.UserId,
             InvoiceId = invoiceId,
             Amount = amount,
             PaymentMethod = paymentMethod,

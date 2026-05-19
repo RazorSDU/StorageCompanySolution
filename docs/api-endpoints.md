@@ -1,18 +1,18 @@
 # API Endpoints
 
-## Customers
+## Users
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| GET | `/api/customers` | Get all customers |
-| GET | `/api/customers/{id}` | Get customer by ID |
-| POST | `/api/customers` | Create customer |
-| PUT | `/api/customers/{id}` | Update customer |
-| GET | `/api/customers/{customerId}/rentals` | Get customer rentals |
-| GET | `/api/customers/{customerId}/reservations` | Get customer reservations |
-| GET | `/api/customers/{customerId}/payments` | Get customer payments |
-| GET | `/api/customers/{customerId}/invoices` | Get customer invoices |
-| GET | `/api/customers/{customerId}/support-requests` | Get customer support requests |
+| Method | Endpoint                               | Purpose                       |
+|---|----------------------------------------|-------------------------------|
+| GET | `/api/Users`                           | Get all users                 |
+| GET | `/api/Users/{id}`                      | Get user by ID                |
+| POST | `/api/Users`                           | Create user               |
+| PUT | `/api/Users/{id}`                      | Update user               |
+| GET | `/api/Users/{userId}/rentals`          | Get user rentals          |
+| GET | `/api/Users/{userId}/reservations`   | Get user reservations     |
+| GET | `/api/Users/{userId}/payments`       | Get user payments         |
+| GET | `/api/Users/{userId}/invoices`       | Get user invoices         |
+| GET | `/api/Users/{userId}/support-requests` | Get user support requests |
 
 ## Facilities
 

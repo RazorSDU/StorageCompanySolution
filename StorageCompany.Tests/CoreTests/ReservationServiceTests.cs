@@ -13,7 +13,7 @@ public class ReservationServiceTests
     public async Task CreateAsync_WithAvailableUnit_ReservesTheUnit()
     {
         var service = new ReservationService(
-            new CustomerRepository(),
+            new UserRepository(),
             new StorageUnitRepository(),
             new ReservationRepository());
 
@@ -21,7 +21,7 @@ public class ReservationServiceTests
         unit.Status = StorageUnitStatus.Available;
 
         var reservation = await service.CreateAsync(
-            MockDatabase.Ids.CustomerPeter,
+            MockDatabase.Ids.UserPeter,
             MockDatabase.Ids.UnitAarhusSmall,
             DateTime.UtcNow.Date.AddDays(1));
 
@@ -33,12 +33,12 @@ public class ReservationServiceTests
     public async Task CreateAsync_WithRentedUnit_ThrowsBusinessRuleException()
     {
         var service = new ReservationService(
-            new CustomerRepository(),
+            new UserRepository(),
             new StorageUnitRepository(),
             new ReservationRepository());
 
         await Assert.ThrowsAsync<BusinessRuleException>(() => service.CreateAsync(
-            MockDatabase.Ids.CustomerPeter,
+            MockDatabase.Ids.UserPeter,
             MockDatabase.Ids.UnitCphMedium,
             DateTime.UtcNow.Date.AddDays(1)));
     }

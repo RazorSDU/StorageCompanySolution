@@ -16,7 +16,7 @@ public class RentalRepository : InMemoryRepository<Rental>, IRentalRepository
         lock (MockDatabase.SyncRoot)
         {
             var result = MockDatabase.Rentals
-                .Where(rental => rental.CustomerId == customerId)
+                .Where(rental => rental.UserId == customerId)
                 .OrderByDescending(rental => rental.CreatedAtUtc)
                 .ToList();
 

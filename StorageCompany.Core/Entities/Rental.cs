@@ -4,7 +4,7 @@ namespace StorageCompany.Core.Entities;
 
 public class Rental : EntityBase
 {
-    public Guid CustomerId { get; set; }
+    public Guid UserId { get; set; }
     public Guid StorageUnitId { get; set; }
     public DateTime StartDateUtc { get; set; }
     public DateTime? EndDateUtc { get; set; }

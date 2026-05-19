@@ -9,8 +9,8 @@ public static class MockDatabase
 
     public static class Ids
     {
-        public static readonly Guid CustomerAnna = Guid.Parse("10000000-0000-0000-0000-000000000001");
-        public static readonly Guid CustomerPeter = Guid.Parse("10000000-0000-0000-0000-000000000002");
+        public static readonly Guid UserAnna = Guid.Parse("10000000-0000-0000-0000-000000000001");
+        public static readonly Guid UserPeter = Guid.Parse("10000000-0000-0000-0000-000000000002");
 
         public static readonly Guid FacilityCopenhagen = Guid.Parse("20000000-0000-0000-0000-000000000001");
         public static readonly Guid FacilityAarhus = Guid.Parse("20000000-0000-0000-0000-000000000002");
@@ -35,27 +35,29 @@ public static class MockDatabase
         public static readonly Guid ExistingSupportRequest = Guid.Parse("90000000-0000-0000-0000-000000000001");
     }
 
-    public static List<Customer> Customers { get; } = new()
+    public static List<User> Users { get; } = new()
     {
-        new Customer
+        new User
         {
-            Id = Ids.CustomerAnna,
+            Id = Ids.UserAnna,
             FirstName = "Anna",
             LastName = "Jensen",
             Email = "anna@example.com",
             PhoneNumber = "+45 12 34 56 78",
-            PasswordHash = "MOCK_HASH_SEEDED_CUSTOMER",
+            PasswordHash = "MOCK_HASH_SEEDED",
+            Role = Constants.CustomerRole,
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow.AddDays(-30)
         },
-        new Customer
+        new User
         {
-            Id = Ids.CustomerPeter,
+            Id = Ids.UserPeter,
             FirstName = "Peter",
             LastName = "Nielsen",
             Email = "peter@example.com",
             PhoneNumber = "+45 87 65 43 21",
-            PasswordHash = "MOCK_HASH_SEEDED_CUSTOMER",
+            PasswordHash = "MOCK_HASH_SEEDED",
+            Role = Constants.AdminRole,
             IsActive = true,
             CreatedAtUtc = DateTime.UtcNow.AddDays(-12)
         }
@@ -173,7 +175,7 @@ public static class MockDatabase
         new Rental
         {
             Id = Ids.ExistingRental,
-            CustomerId = Ids.CustomerAnna,
+            UserId = Ids.UserAnna,
             StorageUnitId = Ids.UnitCphMedium,
             StartDateUtc = DateTime.UtcNow.Date.AddDays(-15),
             MonthlyPrice = 699m,
@@ -188,7 +190,7 @@ public static class MockDatabase
         {
             Id = Ids.ExistingInvoice,
             RentalId = Ids.ExistingRental,
-            CustomerId = Ids.CustomerAnna,
+            UserId = Ids.UserAnna,
             InvoiceNumber = "INV-DEMO-001",
             Amount = 699m,
             DueDateUtc = DateTime.UtcNow.Date.AddDays(15),
@@ -203,7 +205,7 @@ public static class MockDatabase
         {
             Id = Ids.ExistingPayment,
             RentalId = Ids.ExistingRental,
-            CustomerId = Ids.CustomerAnna,
+            UserId = Ids.UserAnna,
             InvoiceId = Ids.ExistingInvoice,
             Amount = 699m,
             PaymentMethod = PaymentMethod.Card,
@@ -231,7 +233,7 @@ public static class MockDatabase
         new SupportRequest
         {
             Id = Ids.ExistingSupportRequest,
-            CustomerId = Ids.CustomerAnna,
+            UserId = Ids.UserAnna,
             RentalId = Ids.ExistingRental,
             Subject = "Need help with access code",
             Message = "This is a demo support request for the showcase API.",

@@ -5,14 +5,14 @@ namespace StorageCompany.Api.Extensions;
 
 public static class ResponseMappingExtensions
 {
-    public static CustomerResponse ToResponse(this Customer customer) => new(
-        customer.Id,
-        customer.FirstName,
-        customer.LastName,
-        customer.Email,
-        customer.PhoneNumber,
-        customer.IsActive,
-        customer.CreatedAtUtc);
+    public static UserResponse ToResponse(this User user) => new(
+        user.Id,
+        user.FirstName,
+        user.LastName,
+        user.Email,
+        user.PhoneNumber,
+        user.IsActive,
+        user.CreatedAtUtc);
 
     public static FacilityResponse ToResponse(this Facility facility) => new(
         facility.Id,
@@ -58,7 +58,7 @@ public static class ResponseMappingExtensions
 
     public static RentalResponse ToResponse(this Rental rental) => new(
         rental.Id,
-        rental.CustomerId,
+        rental.UserId,
         rental.StorageUnitId,
         rental.StartDateUtc,
         rental.EndDateUtc,
@@ -68,7 +68,7 @@ public static class ResponseMappingExtensions
     public static PaymentResponse ToResponse(this Payment payment) => new(
         payment.Id,
         payment.RentalId,
-        payment.CustomerId,
+        payment.UserId,
         payment.InvoiceId,
         payment.Amount,
         payment.PaymentDateUtc,
@@ -79,7 +79,7 @@ public static class ResponseMappingExtensions
     public static InvoiceResponse ToResponse(this Invoice invoice) => new(
         invoice.Id,
         invoice.RentalId,
-        invoice.CustomerId,
+        invoice.UserId,
         invoice.InvoiceNumber,
         invoice.Amount,
         invoice.DueDateUtc,
@@ -95,7 +95,7 @@ public static class ResponseMappingExtensions
 
     public static SupportRequestResponse ToResponse(this SupportRequest supportRequest) => new(
         supportRequest.Id,
-        supportRequest.CustomerId,
+        supportRequest.UserId,
         supportRequest.RentalId,
         supportRequest.Subject,
         supportRequest.Message,
