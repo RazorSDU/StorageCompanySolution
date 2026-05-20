@@ -10,12 +10,12 @@ public class FakeCustomerRepository(List<User> customers) : IUserRepository
     public Task<User?> GetByIdAsync(Guid id) =>
         Task.FromResult(_customers.FirstOrDefault(c => c.Id == id));
 
-    public Task AddAsync(User entity) { _customers.Add(entity); return Task.CompletedTask; }
+    public Task AddAsync(User customer) { _customers.Add(customer); return Task.CompletedTask; }
 
-    public Task UpdateAsync(User entity)
+    public Task UpdateAsync(User customer)
     {
-        var index = _customers.FindIndex(c => c.Id == entity.Id);
-        if (index >= 0) _customers[index] = entity;
+        var index = _customers.FindIndex(c => c.Id == customer.Id);
+        if (index >= 0) _customers[index] = customer;
         return Task.CompletedTask;
     }
 
