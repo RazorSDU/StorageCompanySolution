@@ -487,4 +487,4 @@ $RECYCLE.BIN/
 *.lnk
 
 # Vim temporary swap files
-*.swp*.feature.cs
+*.swp*
