@@ -22,7 +22,7 @@ public class ReservationService : IReservationService
         _storageUnits = storageUnits;
         _reservations = reservations;
     }
-
+    // lavet i white-box CreateAsync
     public async Task<Reservation> CreateAsync(Guid customerId, Guid storageUnitId, DateTime moveInDateUtc)
     {
         Guard.AgainstEmpty(customerId, nameof(customerId));
@@ -73,7 +73,7 @@ public class ReservationService : IReservationService
     {
         return _reservations.GetByCustomerIdAsync(customerId);
     }
-
+    // Lavet i white-box CancelAsync
     public async Task CancelAsync(Guid id)
     {
         var reservation = await GetByIdAsync(id);
