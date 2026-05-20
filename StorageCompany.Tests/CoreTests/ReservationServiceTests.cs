@@ -24,26 +24,26 @@ namespace StorageCompany.Tests.CoreTests;
 /// </summary>
 public class ReservationServiceTests
 {
-    private readonly Mock<ICustomerRepository>     _customerRepo;
+    private readonly Mock<IUserRepository>     _userRepo;
     private readonly Mock<IStorageUnitRepository>  _storageUnitRepo;
     private readonly Mock<IReservationRepository>  _reservationRepo;
     private readonly ReservationService            _sut;
 
     public ReservationServiceTests()
     {
-        _customerRepo     = new Mock<ICustomerRepository>();
+        _userRepo     = new Mock<IUserRepository>();
         _storageUnitRepo  = new Mock<IStorageUnitRepository>();
         _reservationRepo  = new Mock<IReservationRepository>();
 
         _sut = new ReservationService(
-            _customerRepo.Object,
+            _userRepo.Object,
             _storageUnitRepo.Object,
             _reservationRepo.Object);
     }
 
     // ── Test data builders ────────────────────────────────────────────
-    private static Customer ActiveCustomer() => new() { IsActive = true };
-    private static Customer InactiveCustomer() => new() { IsActive = false };
+    private static User ActiveCustomer() => new() { IsActive = true };
+    private static User InactiveCustomer() => new() { IsActive = false };
     private static StorageUnit AvailableUnit() => new() { Status = StorageUnitStatus.Available };
     private static StorageUnit RentedUnit() => new() { Status = StorageUnitStatus.Rented };
     private static StorageUnit ReservedUnit() => new() { Status = StorageUnitStatus.Reserved };
@@ -81,9 +81,9 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenCustomerDoesNotExist_ThrowsNotFoundException()
     {
         // Arrange
-        _customerRepo
+        _userRepo
             .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
-            .ReturnsAsync((Customer?)null);
+            .ReturnsAsync((User?)null);
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() =>
@@ -95,7 +95,7 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenCustomerIsInactive_ThrowsBusinessRuleException()
     {
         // Arrange
-        _customerRepo
+        _userRepo
             .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
             .ReturnsAsync(InactiveCustomer());
 
@@ -109,7 +109,7 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenStorageUnitDoesNotExist_ThrowsNotFoundException()
     {
         // Arrange
-        _customerRepo
+        _userRepo
             .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
             .ReturnsAsync(ActiveCustomer());
 
@@ -127,7 +127,7 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenStorageUnitIsNotAvailable_ThrowsBusinessRuleException()
     {
         // Arrange
-        _customerRepo
+        _userRepo
             .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
             .ReturnsAsync(ActiveCustomer());
 
@@ -145,7 +145,7 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenMoveInDateIsInThePast_ThrowsBusinessRuleException()
     {
         // Arrange
-        _customerRepo
+        _userRepo
             .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
             .ReturnsAsync(ActiveCustomer());
 
@@ -167,7 +167,7 @@ public class ReservationServiceTests
         // Arrange
         var unit = AvailableUnit();
 
-        _customerRepo
+        _userRepo
             .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
             .ReturnsAsync(ActiveCustomer());
 
@@ -196,7 +196,7 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenMoveInDateIsYesterday_ThrowsBusinessRuleException()
     {
         // Arrange
-        _customerRepo
+        _userRepo
             .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
             .ReturnsAsync(ActiveCustomer());
 
@@ -216,7 +216,7 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenMoveInDateIsToday_Succeeds()
     {
         // Arrange
-        _customerRepo
+        _userRepo
             .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
             .ReturnsAsync(ActiveCustomer());
 
@@ -238,7 +238,7 @@ public class ReservationServiceTests
     public async Task CreateAsync_WhenMoveInDateIsInTheFuture_Succeeds()
     {
         // Arrange
-        _customerRepo
+        _userRepo
             .Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
             .ReturnsAsync(ActiveCustomer());
 
